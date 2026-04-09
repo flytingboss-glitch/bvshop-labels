@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BVSHOP 出貨標籤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0f0f0f;
+    --white: #fafaf8;
+    --gray-100: #f2f0ea;
+    --gray-200: #e2e0d8;
+    --gray-400: #a8a69e;
+    --gray-600: #6b6960;
+    --border: #d4d2ca;
+    --green: #1a6b3c;
+    --green-bg: #edf7f1;
+    --red: #b91c1c;
+    --red-bg: #fef2f2;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Noto Sans TC', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--gray-100);
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--black);
+    color: var(--white);
+    padding: 0 32px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header .logo {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  header .sub {
+    font-size: 11px;
+    color: var(--gray-400);
+    font-family: var(--mono);
+  }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Upload zone ── */
+  .upload-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .upload-zone {
+    padding: 56px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { background: var(--gray-100); }
+  .upload-zone input {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon {
+    width: 52px; height: 52px;
+    border: 2px solid var(--black);
+    border-radius: 4px;
+    margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .upload-zone h2 {
+    font-size: 16px; font-weight: 500; margin-bottom: 6px;
+  }
+  .upload-zone p {
+    font-size: 13px; color: var(--gray-600);
+    font-family: var(--mono);
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: none;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-bar.show { display: flex; }
+  .status-bar.loading { background: var(--black); color: var(--white); }
+  .status-bar.success { background: var(--green-bg); color: var(--green); }
+  .status-bar.error { background: var(--red-bg); color: var(--red); }
+  .spinner {
+    width: 14px; height: 14px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Summary ── */
+  .summary-card {
+    display: none;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .summary-card.show { display: block; }
+  .summary-head {
+    background: var(--black); color: var(--white);
+    padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .summary-head strong { font-size: 14px; font-family: var(--mono); }
+  .summary-head span { font-size: 11px; color: var(--gray-400); font-family: var(--mono); }
+  .summary-list { max-height: 300px; overflow-y: auto; }
+  .summary-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 80px;
+    gap: 12px;
+    padding: 9px 20px;
+    border-bottom: 1px solid var(--gray-100);
+    align-items: center;
+    font-size: 13px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .name { font-weight: 500; }
+  .summary-row .oid { font-family: var(--mono); font-size: 10px; color: var(--gray-400); margin-top: 2px; }
+  .log-pill {
+    font-size: 10px; padding: 2px 7px;
+    border: 1px solid var(--black); border-radius: 3px;
+    font-family: var(--mono); text-align: center; display: inline-block;
+  }
+  .log-pill.has { background: var(--black); color: var(--white); }
+  .summary-row .total { text-align: right; font-family: var(--mono); font-weight: 600; font-size: 12px; }
+
+  /* ── Actions ── */
+  .actions {
+    display: none;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+  .actions.show { display: flex; }
+  .btn {
+    padding: 11px 22px; font-size: 13px;
+    font-family: var(--mono); font-weight: 600;
+    border: 2px solid var(--black); border-radius: 3px;
+    cursor: pointer; transition: background .12s, color .12s;
+    letter-spacing: .3px;
+  }
+  .btn-primary { background: var(--black); color: var(--white); }
+  .btn-primary:hover { background: #333; }
+  .btn-outline { background: var(--white); color: var(--black); }
+  .btn-outline:hover { background: var(--gray-100); }
+
+  /* ── Print hint ── */
+  .print-hint {
+    display: none;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.8;
+  }
+  .print-hint.show { display: block; }
+  .print-hint strong { color: var(--black); }
+
+  /* ── Reset link ── */
+  .reset-link {
+    font-size: 12px; font-family: var(--mono);
+    color: var(--gray-400); cursor: pointer;
+    text-decoration: underline; margin-top: 12px;
+    display: inline-block;
+  }
+
+  /* ════════════════════════════════════════════
+     PRINT STYLES — labels only
+  ════════════════════════════════════════════ */
+  @page { size: 100mm 150mm; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    header, main { display: none; }
+    #labels-out { display: block !important; }
+  }
+
+  #labels-out { display: none; }
+
+  .label {
+    width: 100mm; height: 150mm;
+    display: flex; flex-direction: column;
+    padding: 4mm 4mm 3mm; overflow: hidden;
+    background: #fff;
+    font-family: 'Microsoft JhengHei', 'Noto Sans TC', 'PingFang TC', Arial, sans-serif;
+    page-break-after: always;
+  }
+  .lh { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1.5px solid #000; padding-bottom: 1.5mm; margin-bottom: 2mm; }
+  .lid { font-size: 8pt; font-weight: bold; font-family: monospace; letter-spacing: .5px; }
+  .ldt { font-size: 6pt; color: #444; }
+  .rb { border: 1.5px solid #000; padding: 1.5mm 2.5mm; margin-bottom: 2mm; }
+  .rl { font-size: 6pt; color: #555; margin-bottom: .8mm; }
+  .rn { font-size: 15pt; font-weight: bold; letter-spacing: 2px; }
+  .rp { font-size: 8pt; color: #222; margin-top: .8mm; }
+  .sb { border: 1.5px solid #000; padding: 1.5mm 2.5mm; margin-bottom: 2mm; }
+  .sl { font-size: 6pt; color: #555; margin-bottom: .5mm; }
+  .sn { font-size: 9.5pt; font-weight: bold; }
+  .sa { font-size: 6.5pt; color: #333; margin-top: .5mm; }
+  .mr { display: flex; gap: 2mm; margin-bottom: 2mm; flex-wrap: wrap; }
+  .mp { font-size: 6.5pt; padding: 1mm 2mm; border: 1px solid #000; background: #fff; }
+  .mp.pay { font-weight: bold; }
+  .mp.log { font-weight: bold; border-width: 1.5px; }
+  .is { flex: 1; overflow: hidden; }
+  .it { width: 100%; border-collapse: collapse; font-size: 7.5pt; table-layout: fixed; }
+  .it th { border: 1px solid #000; padding: 1mm 1.5mm; font-size: 6.5pt; font-weight: bold; text-align: left; }
+  .it td { border: 1px solid #000; padding: 1mm 1.5mm; vertical-align: middle; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .it .cn { width: 62mm; }
+  .it th:nth-child(2), .it td:nth-child(2) { width: 12mm; text-align: center; }
+  .it th:nth-child(3), .it td:nth-child(3) { width: 14mm; text-align: right; }
+  .lf { border-top: 1.5px solid #000; padding-top: 1.5mm; margin-top: 1.5mm; display: flex; justify-content: space-between; align-items: flex-end; }
+  .fl { font-size: 6.5pt; color: #444; line-height: 1.6; }
+  .tl { font-size: 6pt; color: #666; text-align: right; }
+  .ta { font-size: 14pt; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">BVSHOP · 出貨標籤</span>
+  <span class="sub">100 × 150 mm · 熱感應標籤機</span>
+</header>
+
+<main>
+  <div class="upload-card">
+    <div class="upload-zone" id="dz">
+      <input type="file" accept=".pdf" id="fi">
+      <div class="upload-icon">PDF</div>
+      <h2>拖放 PDF 或點擊上傳</h2>
+      <p>BVSHOP 後台匯出的「出貨明細」PDF</p>
+    </div>
+    <div class="status-bar" id="sb">
+      <div class="spinner" id="spin"></div>
+      <span id="st">解析中…</span>
+    </div>
+  </div>
+
+  <div class="summary-card" id="sumCard">
+    <div class="summary-head">
+      <strong id="sumCount">0 筆訂單</strong>
+      <span id="sumFile"></span>
+    </div>
+    <div class="summary-list" id="sumList"></div>
+  </div>
+
+  <div class="actions" id="acts">
+    <button class="btn btn-primary" onclick="doPrint()">列印標籤</button>
+    <button class="btn btn-outline" onclick="doDownload()">下載 HTML</button>
+    <button class="btn btn-outline" onclick="doReset()">重新上傳</button>
+  </div>
+
+  <div class="print-hint" id="hint">
+    列印設定：紙張 <strong>100 × 150 mm</strong>、縮放 <strong>100%（實際大小）</strong>、關閉頁首頁尾
+  </div>
+</main>
+
+<div id="labels-out"></div>
+
+<script>
+const dz = document.getElementById('dz');
+const fi = document.getElementById('fi');
+let orders = [];
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f?.name.toLowerCase().endsWith('.pdf')) upload(f);
+  else showStatus('error', '請上傳 PDF 格式的檔案');
+});
+fi.addEventListener('change', e => { if (e.target.files[0]) upload(e.target.files[0]); });
+
+async function upload(file) {
+  showStatus('loading', `解析中… ${file.name}`);
+  hideResults();
+
+  const fd = new FormData();
+  fd.append('pdf', file);
+
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showStatus('error', data.error || '上傳失敗');
+      return;
+    }
+    orders = data.orders;
+    showStatus('success', `解析完成 — ${data.count} 筆訂單`);
+    renderSummary(data.orders, file.name);
+    renderLabels(data.orders);
+  } catch (err) {
+    showStatus('error', '連線失敗，請稍後再試');
+  }
+}
+
+function showStatus(type, msg) {
+  const sb = document.getElementById('sb');
+  const st = document.getElementById('st');
+  const spin = document.getElementById('spin');
+  sb.className = 'status-bar show ' + type;
+  st.textContent = msg;
+  spin.style.display = type === 'loading' ? 'block' : 'none';
+}
+
+function hideResults() {
+  document.getElementById('sumCard').classList.remove('show');
+  document.getElementById('acts').classList.remove('show');
+  document.getElementById('hint').classList.remove('show');
+}
+
+function renderSummary(list, fname) {
+  document.getElementById('sumCount').textContent = `${list.length} 筆訂單`;
+  document.getElementById('sumFile').textContent = fname;
+  document.getElementById('sumList').innerHTML = list.map(o => `
+    <div class="summary-row">
+      <div>
+        <div class="name">${o.recipient ?? '—'}</div>
+        <div class="oid">${o.order_id}</div>
+      </div>
+      <span class="log-pill ${o.logistics ? 'has' : ''}">${o.logistics || '待填'}</span>
+      <span class="total">${o.total ?? '—'}</span>
+    </div>`).join('');
+  document.getElementById('sumCard').classList.add('show');
+  document.getElementById('acts').classList.add('show');
+  document.getElementById('hint').classList.add('show');
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildLabel(o) {
+  const dt = (o.date ?? '').replace(/:\d{2}$/, '');
+  const logH = o.logistics
+    ? `<span class="mp log">物流：${esc(o.logistics)}</span>`
+    : `<span class="mp">物流：未填</span>`;
+  const rows = o.items.length
+    ? o.items.map(i => `<tr><td class="cn">${esc(i.name)}</td><td>×${i.qty}</td><td>$${i.sub}</td></tr>`).join('')
+    : `<tr><td colspan="3" style="text-align:center;color:#aaa;font-size:7pt">（無商品資料）</td></tr>`;
+  return `<div class="label">
+  <div class="lh"><span class="lid">${esc(o.order_id)}</span><span class="ldt">${esc(dt)}</span></div>
+  <div class="rb"><div class="rl">收件人</div><div class="rn">${esc(o.recipient ?? '—')}</div><div class="rp">${esc(o.rec_phone ?? '')}</div></div>
+  <div class="sb"><div class="sl">取貨門市</div><div class="sn">${esc(o.store ?? '—')}</div><div class="sa">${esc(o.address ?? '')}</div></div>
+  <div class="mr"><span class="mp pay">${esc(o.payment ?? '—')}</span>${logH}</div>
+  <div class="is"><table class="it"><thead><tr><th class="cn">品名</th><th>數量</th><th>小計</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="lf"><div class="fl">共 ${o.qty ?? 0} 件 · 運費 $65</div><div><div class="tl">總計</div><div class="ta">${esc(o.total ?? '—')}</div></div></div>
+</div>`;
+}
+
+function renderLabels(list) {
+  document.getElementById('labels-out').innerHTML = list.map(buildLabel).join('\n');
+}
+
+function doPrint() { window.print(); }
+
+function doDownload() {
+  const n = orders.length;
+  const inner = document.getElementById('labels-out').innerHTML;
+  const css = `@page{size:100mm 150mm;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Microsoft JhengHei','PingFang TC',Arial,sans-serif;background:#eee}@media screen{body{padding:16px;display:flex;flex-wrap:wrap;gap:12px}.np{width:100%;padding:8px 12px;background:#fff;font-size:13px;border-radius:4px}.np button{margin-left:10px;padding:4px 14px;background:#111;color:#fff;border:none;cursor:pointer;font-size:13px}.label{width:100mm;height:150mm;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}}@media print{body{background:#fff;padding:0;display:block}.np{display:none}.label{width:100mm;height:150mm;page-break-after:always;overflow:hidden}}.label{display:flex;flex-direction:column;padding:4mm 4mm 3mm;overflow:hidden}.lh{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1.5px solid #000;padding-bottom:1.5mm;margin-bottom:2mm}.lid{font-size:8pt;font-weight:bold;font-family:monospace;letter-spacing:.5px}.ldt{font-size:6pt;color:#444}.rb{border:1.5px solid #000;padding:1.5mm 2.5mm;margin-bottom:2mm}.rl{font-size:6pt;color:#555;margin-bottom:.8mm}.rn{font-size:15pt;font-weight:bold;letter-spacing:2px}.rp{font-size:8pt;color:#222;margin-top:.8mm}.sb{border:1.5px solid #000;padding:1.5mm 2.5mm;margin-bottom:2mm}.sl{font-size:6pt;color:#555;margin-bottom:.5mm}.sn{font-size:9.5pt;font-weight:bold}.sa{font-size:6.5pt;color:#333;margin-top:.5mm}.mr{display:flex;gap:2mm;margin-bottom:2mm;flex-wrap:wrap}.mp{font-size:6.5pt;padding:1mm 2mm;border:1px solid #000;background:#fff}.mp.pay{font-weight:bold}.mp.log{font-weight:bold;border-width:1.5px}.is{flex:1;overflow:hidden}.it{width:100%;border-collapse:collapse;font-size:7.5pt;table-layout:fixed}.it th{border:1px solid #000;padding:1mm 1.5mm;font-size:6.5pt;font-weight:bold;text-align:left}.it td{border:1px solid #000;padding:1mm 1.5mm;vertical-align:middle;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.it .cn{width:62mm}.it th:nth-child(2),.it td:nth-child(2){width:12mm;text-align:center}.it th:nth-child(3),.it td:nth-child(3){width:14mm;text-align:right}.lf{border-top:1.5px solid #000;padding-top:1.5mm;margin-top:1.5mm;display:flex;justify-content:space-between;align-items:flex-end}.fl{font-size:6.5pt;color:#444;line-height:1.6}.tl{font-size:6pt;color:#666;text-align:right}.ta{font-size:14pt;font-weight:bold}`;
+  const html = `<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><title>出貨標籤 ${n}張</title><style>${css}</style></head><body><div class="np">共 ${n} 張標籤 · 紙張 100×150mm · 縮放 100% · 關閉頁首頁尾 <button onclick="window.print()">列印</button></div>${inner}</body></html>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  a.download = `出貨標籤_${n}張.html`;
+  a.click();
+}
+
+function doReset() {
+  orders = [];
+  hideResults();
+  document.getElementById('sb').className = 'status-bar';
+  document.getElementById('fi').value = '';
+  document.getElementById('labels-out').innerHTML = '';
+}
+</script>
+</body>
+</html>
