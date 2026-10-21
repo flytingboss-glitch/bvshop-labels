@@ -1,0 +1,71 @@
+# 台灣短影音智能體：一鍵堆疊
+#   docker compose up -d                      -> studio + ollama（CPU 也能跑）
+#   docker compose --profile gpu up -d        -> 再加 ComfyUI（本機無限生圖，需 NVIDIA GPU + nvidia-container-toolkit）
+#   docker compose --profile extra up -d      -> 再加 MoneyPrinterTurbo（文案成片）與 AutoClip（長片切短片）
+#
+# 手機使用：同一個 Wi-Fi 打開 http://<電腦IP>:7860；出門用 Tailscale / Cloudflare Tunnel。
+services:
+  studio:                              # 本專案：一句話 -> 直式短影片（手機友善網頁）
+    build: ./studio
+    container_name: tiktok-studio
+    ports: ["7860:7860"]
+    env_file: [.env]
+    volumes:
+      - ./output:/data/output
+      - ./work:/data/work
+      - ./bgm:/data/bgm:ro
+    depends_on: [ollama]
+    restart: unless-stopped
+
+  ollama:                              # 免費本機 LLM（劇本）；首次：docker exec ollama ollama pull qwen2.5:7b
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports: ["11434:11434"]
+    volumes: [ollama:/root/.ollama]
+    restart: unless-stopped
+    # 有 NVIDIA 顯卡再把下面三行打開，速度快很多
+    # deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+
+  comfyui:                             # 本機無限生圖（SDXL / Flux / Z-Image…），模型放 ./models
+    profiles: [gpu]
+    image: yanwk/comfyui-boot:cu124-slim
+    container_name: comfyui
+    ports: ["8188:8188"]
+    volumes:
+      - ./comfyui:/root
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    restart: unless-stopped
+
+  moneyprinterturbo:                   # 133k★ 文案成片（Pexels 影片素材 + 字幕 + 配音），WebUI 8501 / API 8080
+    profiles: [extra]
+    build: { context: https://github.com/harry0703/MoneyPrinterTurbo.git }
+    container_name: moneyprinterturbo
+    command: ["streamlit", "run", "./webui/Main.py", "--browser.serverAddress=0.0.0.0", "--server.enableCORS=True", "--browser.gatherUsageStats=False"]
+    ports: ["8501:8501"]
+    volumes: [./mpt:/MoneyPrinterTurbo/storage]
+    env_file: [.env]
+    restart: unless-stopped
+
+  autoclip:                            # 9.6k★ 長影片 -> 爆點短片 + 字幕 + 封面 + 發文文案（需 redis）
+    profiles: [extra]
+    build: { context: https://github.com/zhouxiaoka/autoclip.git }
+    container_name: autoclip
+    ports: ["3000:3000", "8000:8000"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_PROVIDER=openai
+      - OPENAI_BASE_URL=${LLM_BASE_URL:-http://ollama:11434/v1}
+      - OPENAI_API_KEY=${LLM_API_KEY:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-qwen2.5:7b}
+    volumes: [./autoclip-data:/app/data, ./autoclip-uploads:/app/uploads]
+    depends_on: [redis, ollama]
+    restart: unless-stopped
+
+  redis:
+    profiles: [extra]
+    image: redis:7-alpine
+    container_name: autoclip-redis
+    restart: unless-stopped
+
+volumes:
+  ollama:

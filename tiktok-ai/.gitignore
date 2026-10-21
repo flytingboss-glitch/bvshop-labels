@@ -1,0 +1,10 @@
+output/
+work/
+bgm/
+mpt/
+comfyui/
+autoclip-data/
+autoclip-uploads/
+.env
+__pycache__/
+*.pyc
