@@ -67,7 +67,8 @@ docker exec ollama ollama pull gemma3:4b      # 第一次：下載劇本模型�
 
 ### ③ 聲音克隆 + 對嘴
 ```bash
-docker compose --profile voice up -d --build     # 首次 build 會下載 CosyVoice（~2GB）與 MuseTalk（~4GB）權重，需要一點時間
+docker compose --profile voice up -d --build     # 用你的聲音（CosyVoice，首次約 2GB）
+docker compose --profile lipsync up -d --build   # 對嘴（MuseTalk，首次約 4GB，可以晚點再裝）
 ```
 - 錄音：安靜環境、只有你的聲音、5~15 秒、講一段自然的話；在網頁上傳後填「錄音裡說的內容」會更像。
 - 影片：正面、臉占畫面 1/3 以上、光線均勻、25fps 最好；MuseTalk 只改嘴型，頭部大動作仍會跟原片。

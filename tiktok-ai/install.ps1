@@ -154,7 +154,8 @@ Write-Host @"
 
     之後開關：打開 Docker Desktop → Containers → tiktok-ai 旁的 ▶ / ■
     要貼抖音連結：先登入 douyin.com 複製 cookie 到 $Install\douyin-config\config.yaml（見 docs\安裝教學-Windows.md 第 5 步）
-    要用自己的聲音+對嘴：在 $Install 開 PowerShell 執行 docker compose --profile voice up -d --build
+    要用自己的聲音：在 $Install 開 PowerShell 執行 docker compose --profile voice up -d --build
+    要對嘴：再執行 docker compose --profile lipsync up -d --build
 
 "@
 Start-Process "http://localhost:$Port"

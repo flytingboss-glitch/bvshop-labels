@@ -102,10 +102,14 @@ Cookie 幾週會過期，再出現「需要 cookie」時重貼一次。TikTok、
 
 ## 第 6 步：讓「③ 我的聲音 + 對嘴」能用（一次性，約 20 分鐘下載）
 
+分兩個開關，先裝聲音、再裝對嘴；對嘴裝不起來也不影響用你的聲音配音。
+
 ```powershell
-docker compose --profile voice up -d --build
+cd $env:USERPROFILE\tiktok-ai
+docker compose --profile voice up -d --build      # 用你的聲音（CosyVoice，約 2 GB）
+docker compose --profile lipsync up -d --build    # 對嘴（MuseTalk，build 約 10 分鐘，第一次啟動再下載約 4 GB 權重）
 ```
-會下載 CosyVoice（約 2 GB）與 MuseTalk（約 4 GB）權重。完成後 Docker Desktop 會多出 `cosyvoice` 和 `musetalk` 兩個容器。
+完成後 Docker Desktop 會多出 `cosyvoice` 和 `musetalk` 兩個容器。`musetalk` 第一次啟動時 Logs 會顯示下載進度，看到「權重就緒，啟動 API」才算好。
 
 6 GB 顯卡的使用習慣：**要做 ③ 的時候才開這兩個**，做完在 Docker Desktop 把它們按 ■ 停掉，顯存才夠給 Ollama 和生圖。
 
@@ -183,6 +187,7 @@ docker compose --profile voice up -d --build
 | 配音是無聲 | edge‑tts 連不上微軟（防火牆或公司網路）。換個網路再試 |
 | 顯示 CUDA out of memory | 顯存不夠：停掉 `comfyui` 或 `musetalk` 其中一個，或把 Ollama 換成 `gemma3:1b` |
 | `ports are not available … forbidden by its access permissions` | Windows 把那個埠保留走了。重新按兩下「安裝.bat」會自動改用別的埠；手動的話在 `.env` 把 `STUDIO_PORT=7860` 改成 `17860`，再 `docker compose up -d` |
+| `target musetalk: failed to solve` | 對嘴映像建置失敗。先用 `--profile voice` 把聲音克隆裝好；對嘴的錯誤訊息貼給 Claude |
 | 想全部重來 | PowerShell：`docker compose down` 再 `docker compose up -d` |
 
 遇到任何錯誤，把紅字訊息整段貼給我就好。

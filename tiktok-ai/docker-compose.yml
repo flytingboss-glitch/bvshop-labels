@@ -2,9 +2,10 @@
 #   docker compose up -d                      -> studio + ollama（CPU 也能跑）
 #   docker compose --profile gpu up -d        -> 再加 ComfyUI（本機無限生圖，需 NVIDIA GPU + nvidia-container-toolkit）
 #   docker compose --profile extra up -d      -> 再加 MoneyPrinterTurbo（文案成片）與 AutoClip（長片切短片）
-#   docker compose --profile voice up -d      -> 再加 CosyVoice（聲音克隆）與 MuseTalk（對嘴），需 NVIDIA GPU
+#   docker compose --profile voice up -d      -> 再加 CosyVoice（用你的聲音配音），需 NVIDIA GPU
+#   docker compose --profile lipsync up -d    -> 再加 MuseTalk（對嘴），需 NVIDIA GPU；兩個分開，對嘴裝不起來不影響克隆聲音
 #
-# RTX 4050 6GB 建議：gpu / voice 兩個 profile 不要同時跑生圖與對嘴；Ollama 用 gemma3:4b。
+# RTX 4050 6GB 建議：生圖（gpu）與對嘴（lipsync）不要同時開；Ollama 用 gemma3:4b。
 #
 # 手機使用：同一個 Wi-Fi 打開 http://<電腦IP>:7860；出門用 Tailscale / Cloudflare Tunnel。
 services:
@@ -60,13 +61,14 @@ services:
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     restart: unless-stopped
 
-  musetalk:                            # ② 對嘴（MIT）。4GB 顯存可跑（fp16），8 秒影片約 5 分鐘
-    profiles: [voice]
+  musetalk:                            # ③ 對嘴（MIT）。4GB 顯存可跑（fp16），8 秒影片約 5 分鐘；首次啟動下載約 4GB 權重
+    profiles: [lipsync]
     build: ./services/musetalk-api
     container_name: musetalk
     expose: ["8600"]
     environment:
       - MUSETALK_EXTRA_ARGS=--use_float16 --batch_size 4
+    volumes: [./musetalk-models:/app/MuseTalk/models]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     restart: unless-stopped
 
