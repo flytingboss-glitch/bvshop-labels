@@ -89,9 +89,17 @@
       <div><label>圖片來源</label><select name="images">{% for v,l in backends %}<option value="{{v}}" {% if v==default_backend %}selected{% endif %}>{{l}}</option>{% endfor %}</select></div>
     </div>
     <label>風格</label><input name="style" placeholder="輕鬆、資訊型、帶貨…">
-    <label>用我的聲音（選填：上傳 5~15 秒乾淨錄音）</label>
-    <input type="file" accept="audio/*,.m4a,.mp4" class="voicefile"><div class="ok vstatus"></div>
-    <input type="hidden" name="voice_id"><input name="ref_text" placeholder="錄音裡你說的內容（選填，填了更像）">
+    <label>用我的聲音（選填）</label>
+    <div class="voicebox">
+      <div class="hint" style="margin:6px 0">在安靜的地方，用平常講話的語氣，照著下面這段唸一次（約 12 秒）：</div>
+      <pre class="readme" style="margin:0 0 6px">大家好，歡迎來到我的頻道。今天想跟你分享一個很實用的小技巧，說真的，我自己試了一個禮拜，結果真的蠻驚訝的！</pre>
+      <button type="button" class="sec recbtn">🎙️ 直接錄音（電腦用 localhost 開才能用）</button>
+      <div class="hint" style="margin-top:6px">或上傳手機錄好的檔案（iPhone「語音備忘錄」、Android「錄音機」的 m4a / mp3 / wav 都可以）：</div>
+      <input type="file" accept="audio/*,.m4a,.mp4" class="voicefile"><div class="ok vstatus"></div>
+      <input type="hidden" name="voice_id">
+      <div class="chk"><input type="checkbox" class="usereadme" checked><label style="margin:0">我是照上面那段唸的</label></div>
+      <input name="ref_text" class="hide" placeholder="錄音裡你實際說的內容（一字不差最像）">
+    </div>
     <div class="chk"><input type="checkbox" name="offline" id="off2"><label for="off2" style="margin:0">離線測試（模板劇本）</label></div>
     <button>開始生成</button>
   </form>
@@ -103,9 +111,17 @@
     <input type="file" name="video" accept="video/*" required>
     <label>要講的文案（可從 ① 的結果貼過來）</label>
     <textarea name="script" rows="5" required placeholder="大家好，今天跟你分享…"></textarea>
-    <label>我的聲音（5~15 秒乾淨錄音）</label>
-    <input type="file" accept="audio/*,.m4a,.mp4" class="voicefile"><div class="ok vstatus"></div>
-    <input type="hidden" name="voice_id"><input name="ref_text" placeholder="錄音裡你說的內容（選填）">
+    <label>我的聲音</label>
+    <div class="voicebox">
+      <div class="hint" style="margin:6px 0">在安靜的地方，用平常講話的語氣，照著下面這段唸一次（約 12 秒）：</div>
+      <pre class="readme" style="margin:0 0 6px">大家好，歡迎來到我的頻道。今天想跟你分享一個很實用的小技巧，說真的，我自己試了一個禮拜，結果真的蠻驚訝的！</pre>
+      <button type="button" class="sec recbtn">🎙️ 直接錄音（電腦用 localhost 開才能用）</button>
+      <div class="hint" style="margin-top:6px">或上傳手機錄好的檔案（iPhone「語音備忘錄」、Android「錄音機」的 m4a / mp3 / wav 都可以）：</div>
+      <input type="file" accept="audio/*,.m4a,.mp4" class="voicefile"><div class="ok vstatus"></div>
+      <input type="hidden" name="voice_id">
+      <div class="chk"><input type="checkbox" class="usereadme" checked><label style="margin:0">我是照上面那段唸的</label></div>
+      <input name="ref_text" class="hide" placeholder="錄音裡你實際說的內容（一字不差最像）">
+    </div>
     <div class="chk"><input type="checkbox" name="lipsync" id="ls" checked><label for="ls" style="margin:0">MuseTalk 對嘴（需 GPU 服務；關掉則只換音軌）</label></div>
     <button>生成我的影片</button>
   </form>
@@ -122,13 +138,33 @@ const st=$('#status'),msg=$('#msg'),pct=$('#pct'),res=$('#result');
 $$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.toggle('on',x===b));$$('form[data-tab]').forEach(f=>f.classList.toggle('hide',f.dataset.tab!==b.dataset.tab));});
 const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-// 上傳聲音樣本 -> voice_id
-$$('.voicefile').forEach(inp=>inp.onchange=async()=>{
-  const form=inp.closest('form'), fd=new FormData(); fd.append('audio',inp.files[0]);
-  form.querySelector('.vstatus').textContent='上傳中…';
+// 聲音樣本：上傳檔案或直接錄音 -> voice_id；「照範本唸」時自動帶入 ref_text
+async function uploadVoice(box, blob, name){
+  const st=box.querySelector('.vstatus'), fd=new FormData(); fd.append('audio',blob,name);
+  st.textContent='上傳中…';
   const r=await fetch('/api/voices',{method:'POST',body:fd}); const j=await r.json();
-  if(!r.ok){form.querySelector('.vstatus').textContent=j.error;return}
-  form.querySelector('[name=voice_id]').value=j.voice_id; form.querySelector('.vstatus').textContent='✔ 已上傳：'+j.name;
+  if(!r.ok){st.textContent=j.error;return}
+  box.querySelector('[name=voice_id]').value=j.voice_id; st.textContent='✔ 聲音樣本已上傳：'+j.name;
+}
+function syncRef(box){const use=box.querySelector('.usereadme').checked, ref=box.querySelector('[name=ref_text]');
+  ref.classList.toggle('hide',use); if(use) ref.value=box.querySelector('.readme').textContent.trim(); else if(ref.value===box.querySelector('.readme').textContent.trim()) ref.value='';}
+$$('.voicebox').forEach(box=>{
+  syncRef(box); box.querySelector('.usereadme').onchange=()=>syncRef(box);
+  box.querySelector('.voicefile').onchange=e=>uploadVoice(box,e.target.files[0],e.target.files[0].name);
+  const btn=box.querySelector('.recbtn');
+  if(!(navigator.mediaDevices&&window.MediaRecorder)){btn.disabled=true;btn.textContent='🎙️ 這個網址不能直接錄音（手機請用錄音 App 再上傳）';return}
+  let rec=null, chunks=[], timer=null;
+  btn.onclick=async()=>{
+    if(rec&&rec.state==='recording'){rec.stop();return}
+    try{const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+      rec=new MediaRecorder(stream); chunks=[]; let t=0;
+      rec.ondataavailable=e=>chunks.push(e.data);
+      rec.onstop=()=>{clearInterval(timer);stream.getTracks().forEach(x=>x.stop());btn.textContent='🎙️ 重新錄音';
+        uploadVoice(box,new Blob(chunks,{type:rec.mimeType||'audio/webm'}),'錄音.webm')};
+      rec.start(); btn.textContent='⏺ 錄音中 0 秒…（唸完按這裡停止）';
+      timer=setInterval(()=>{t++;btn.textContent=`⏺ 錄音中 ${t} 秒…（唸完按這裡停止）`;if(t>=20)rec.stop()},1000);
+    }catch(err){alert('無法使用麥克風：'+err.message)}
+  };
 });
 
 function start(){st.classList.remove('hide');res.innerHTML='';pct.style.width='0';msg.textContent='排隊中';$$('form button').forEach(b=>b.disabled=true)}
