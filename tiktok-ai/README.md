@@ -30,7 +30,9 @@
                                           └──► FFmpeg              Ken Burns + ASS 字幕 + 合成
 ```
 
-> **零基礎從頭裝？** 直接看 **[docs/安裝教學-Windows.md](docs/安裝教學-Windows.md)**：Docker 安裝、顯卡設定、手機連線、抖音 cookie、每個分頁怎麼按，含常見問題表。
+> **最快的方法（Windows）**：下載 [`安裝.bat`](安裝.bat) 放到桌面，按兩下，跳出的視窗按「是」。它會自動裝 Docker、下載專案、啟動、下載模型、開防火牆、開瀏覽器；中途要求重新開機時重開後再按一次即可。
+>
+> **想了解每一步？** 看 **[docs/安裝教學-Windows.md](docs/安裝教學-Windows.md)**：Docker 安裝、顯卡設定、手機連線、抖音 cookie、每個分頁怎麼按，含常見問題表。
 
 ## 你的機器：RTX 4050 Laptop 6GB 的建議設定
 
