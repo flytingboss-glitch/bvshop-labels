@@ -5,6 +5,6 @@ WORKDIR /app
 COPY requirements.txt /app/studio/requirements.txt
 RUN pip install --no-cache-dir -r /app/studio/requirements.txt
 COPY . /app/studio
-ENV STUDIO_OUTPUT_DIR=/data/output STUDIO_WORK_DIR=/data/work PORT=7860 SUBTITLE_FONT="Noto Sans CJK TC"
+ENV STUDIO_OUTPUT_DIR=/data/output STUDIO_WORK_DIR=/data/work STUDIO_UPLOAD_DIR=/data/uploads PORT=7860 SUBTITLE_FONT="Noto Sans CJK TC"
 EXPOSE 7860
 CMD ["python", "-m", "studio.server"]

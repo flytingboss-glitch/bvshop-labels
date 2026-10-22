@@ -2,6 +2,9 @@
 #   docker compose up -d                      -> studio + ollama（CPU 也能跑）
 #   docker compose --profile gpu up -d        -> 再加 ComfyUI（本機無限生圖，需 NVIDIA GPU + nvidia-container-toolkit）
 #   docker compose --profile extra up -d      -> 再加 MoneyPrinterTurbo（文案成片）與 AutoClip（長片切短片）
+#   docker compose --profile voice up -d      -> 再加 CosyVoice（聲音克隆）與 MuseTalk（對嘴），需 NVIDIA GPU
+#
+# RTX 4050 6GB 建議：gpu / voice 兩個 profile 不要同時跑生圖與對嘴；Ollama 用 gemma3:4b。
 #
 # 手機使用：同一個 Wi-Fi 打開 http://<電腦IP>:7860；出門用 Tailscale / Cloudflare Tunnel。
 services:
@@ -13,11 +16,20 @@ services:
     volumes:
       - ./output:/data/output
       - ./work:/data/work
+      - ./uploads:/data/uploads
       - ./bgm:/data/bgm:ro
-    depends_on: [ollama]
+    depends_on: [ollama, douyin-api]
     restart: unless-stopped
 
-  ollama:                              # 免費本機 LLM（劇本）；首次：docker exec ollama ollama pull qwen2.5:7b
+  douyin-api:                          # ① 貼抖音 / TikTok 連結抓影片與文案（Apache-2.0）。抖音需在容器內填 cookie，見 README
+    image: evil0ctal/douyin_tiktok_download_api:V4.1.2
+    container_name: douyin-api
+    ports: ["8081:80"]
+    volumes:
+      - ./douyin-config:/app/crawlers/douyin/web:rw
+    restart: unless-stopped
+
+  ollama:                              # 免費本機 LLM（劇本）；首次：docker exec ollama ollama pull gemma3:4b（6GB 顯卡）或 qwen2.5:7b
     image: ollama/ollama:latest
     container_name: ollama
     ports: ["11434:11434"]
@@ -33,6 +45,26 @@ services:
     ports: ["8188:8188"]
     volumes:
       - ./comfyui:/root
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    restart: unless-stopped
+
+  cosyvoice:                           # ② 聲音克隆（Apache-2.0）。首次啟動會從 ModelScope 下載模型（約 2GB）
+    profiles: [voice]
+    build: { context: https://github.com/FunAudioLLM/CosyVoice.git, dockerfile: runtime/python/Dockerfile }
+    container_name: cosyvoice
+    command: ["/bin/bash", "-c", "cd /opt/CosyVoice/CosyVoice/runtime/python/fastapi && python3 server.py --port 50000 --model_dir ${COSYVOICE_MODEL:-iic/CosyVoice2-0.5B}"]
+    ports: ["50000:50000"]
+    volumes: [./cosyvoice-models:/root/.cache/modelscope]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    restart: unless-stopped
+
+  musetalk:                            # ② 對嘴（MIT）。4GB 顯存可跑（fp16），8 秒影片約 5 分鐘
+    profiles: [voice]
+    build: ./services/musetalk-api
+    container_name: musetalk
+    ports: ["8600:8600"]
+    environment:
+      - MUSETALK_EXTRA_ARGS=--use_float16 --batch_size 4
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     restart: unless-stopped
 

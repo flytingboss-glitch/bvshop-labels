@@ -5,68 +5,140 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>短影音智能體</title>
 <style>
-  :root{--bg:#0f1117;--card:#181b24;--fg:#f2f4f8;--muted:#9aa3b2;--acc:#ff3b5c;--ok:#2ecc71}
-  @media (prefers-color-scheme: light){:root{--bg:#f5f6fa;--card:#fff;--fg:#14161c;--muted:#5d6475}}
+  :root{--bg:#0f1117;--card:#181b24;--fg:#f2f4f8;--muted:#9aa3b2;--acc:#ff3b5c;--ok:#2ecc71;--line:#2a2f3d}
+  @media (prefers-color-scheme: light){:root{--bg:#f5f6fa;--card:#fff;--fg:#14161c;--muted:#5d6475;--line:#dde1ea}}
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 -apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
-  main{max-width:560px;margin:0 auto;padding:16px 16px 48px}
-  h1{font-size:22px;margin:8px 0 2px} .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  main{max-width:600px;margin:0 auto;padding:16px 16px 48px}
+  h1{font-size:22px;margin:8px 0 2px} .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+  .tabs{display:flex;gap:6px;margin-bottom:12px} .tabs button{flex:1;margin:0;padding:10px 4px;font-size:14px;background:var(--card);color:var(--fg);border:1px solid var(--line);font-weight:600}
+  .tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
   .card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
   label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-  input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid #2a2f3d;background:transparent;color:var(--fg);font-size:16px}
+  input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--fg);font-size:16px}
+  input[type=file]{padding:8px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   button{width:100%;margin-top:14px;padding:14px;border:0;border-radius:12px;background:var(--acc);color:#fff;font-size:17px;font-weight:700}
+  button.sec{background:transparent;border:1px solid var(--line);color:var(--fg);font-size:15px;padding:10px}
   button:disabled{opacity:.5}
-  .bar{height:10px;background:#2a2f3d;border-radius:6px;overflow:hidden;margin-top:8px}
+  .bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:8px}
   .bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .4s}
   video{width:100%;max-height:70vh;border-radius:12px;background:#000;margin-top:10px}
   .chk{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;color:var(--muted)} .chk input{width:auto}
   pre{white-space:pre-wrap;font-size:14px;background:#0008;padding:10px;border-radius:8px}
   a.dl{display:inline-block;margin-top:10px;color:var(--acc);font-weight:700}
+  .hide{display:none} .hint{font-size:12px;color:var(--muted)} .ok{color:var(--ok);font-size:13px}
+  .pills{display:flex;gap:8px} .pills label{flex:1;margin:0} .pills input{display:none}
+  .pills span{display:block;text-align:center;padding:10px 0;border:1px solid var(--line);border-radius:10px;font-weight:700}
+  .pills input:checked+span{background:var(--acc);color:#fff;border-color:var(--acc)}
 </style>
 </head>
 <body>
 <main>
   <h1>🎬 短影音智能體</h1>
-  <div class="sub">一句話 → 劇本 → 台灣腔配音 → 圖片 → 字幕 → 1080×1920 直式影片。LLM：{{ llm }}</div>
+  <div class="sub">LLM：{{ llm }}</div>
 
-  <form class="card" id="f">
+  <div class="tabs">
+    <button data-tab="t1" class="on">① 連結→文案</button>
+    <button data-tab="t2">② 文案→影片</button>
+    <button data-tab="t3">③ 我的影片+聲音</button>
+  </div>
+
+  <!-- ① -->
+  <form class="card" id="f1" data-tab="t1">
+    <label>抖音 / TikTok / YouTube 分享連結（整段分享文字貼上也可以）</label>
+    <textarea name="url" rows="3" placeholder="7.12 复制打开抖音… https://v.douyin.com/xxxx/" required></textarea>
+    <label>目標長度</label>
+    <div class="pills">{% for d in durations %}<label><input type="radio" name="target_seconds" value="{{d}}" {% if d==30 %}checked{% endif %}><span>{{d}} 秒</span></label>{% endfor %}</div>
+    <label>風格（選填）</label><input name="style" placeholder="保留原片節奏 / 更口語 / 帶貨…">
+    <div class="chk"><input type="checkbox" name="offline" id="off1"><label for="off1" style="margin:0">離線（不呼叫 LLM，只做合規清洗）</label></div>
+    <button>抓文案並改寫</button>
+  </form>
+
+  <!-- ② -->
+  <form class="card hide" id="f2" data-tab="t2">
     <label>影片主題 / 文案想法</label>
-    <textarea name="topic" rows="3" placeholder="例如：台北三家 CP 值最高的早餐店" required></textarea>
-    <div class="row">
-      <div><label>場景數（約 5 秒／場景）</label><input name="scenes" type="number" min="3" max="12" value="5"></div>
-      <div><label>風格</label><input name="style" placeholder="輕鬆、資訊型、帶貨…"></div>
-    </div>
+    <textarea name="topic" rows="2" placeholder="例如：台北三家 CP 值最高的早餐店"></textarea>
+    <label>或直接用劇本（從 ① 帶過來，可手動修改）</label>
+    <textarea name="script" rows="4" placeholder='{"title":"...","scenes":[{"narration":"...","image_prompt":"...","keyword":"..."}]}'></textarea>
+    <label>目標長度</label>
+    <div class="pills">{% for d in durations %}<label><input type="radio" name="target_seconds" value="{{d}}" {% if d==30 %}checked{% endif %}><span>{{d}} 秒</span></label>{% endfor %}</div>
     <div class="row">
       <div><label>配音</label><select name="voice">{% for v,l in voices %}<option value="{{v}}">{{l}}</option>{% endfor %}</select></div>
       <div><label>圖片來源</label><select name="images">{% for v,l in backends %}<option value="{{v}}" {% if v==default_backend %}selected{% endif %}>{{l}}</option>{% endfor %}</select></div>
     </div>
-    <div class="chk"><input type="checkbox" name="offline" id="off"><label for="off" style="margin:0">離線測試（不呼叫 LLM，用模板劇本）</label></div>
-    <button id="go">開始生成</button>
+    <label>風格</label><input name="style" placeholder="輕鬆、資訊型、帶貨…">
+    <label>用我的聲音（選填：上傳 5~15 秒乾淨錄音）</label>
+    <input type="file" accept="audio/*,.m4a,.mp4" class="voicefile"><div class="ok vstatus"></div>
+    <input type="hidden" name="voice_id"><input name="ref_text" placeholder="錄音裡你說的內容（選填，填了更像）">
+    <div class="chk"><input type="checkbox" name="offline" id="off2"><label for="off2" style="margin:0">離線測試（模板劇本）</label></div>
+    <button>開始生成</button>
   </form>
 
-  <div class="card" id="status" style="display:none">
+  <!-- ③ -->
+  <form class="card hide" id="f3" data-tab="t3">
+    <label>我的影片（沒講話也沒關係，正面、臉清楚、建議 25fps）</label>
+    <input type="file" name="video" accept="video/*" required>
+    <label>要講的文案（可從 ① 的結果貼過來）</label>
+    <textarea name="script" rows="5" required placeholder="大家好，今天跟你分享…"></textarea>
+    <label>我的聲音（5~15 秒乾淨錄音）</label>
+    <input type="file" accept="audio/*,.m4a,.mp4" class="voicefile"><div class="ok vstatus"></div>
+    <input type="hidden" name="voice_id"><input name="ref_text" placeholder="錄音裡你說的內容（選填）">
+    <div class="chk"><input type="checkbox" name="lipsync" id="ls" checked><label for="ls" style="margin:0">MuseTalk 對嘴（需 GPU 服務；關掉則只換音軌）</label></div>
+    <button>生成我的影片</button>
+  </form>
+
+  <div class="card hide" id="status">
     <div id="msg">排隊中</div>
     <div class="bar"><i id="pct"></i></div>
     <div id="result"></div>
   </div>
 </main>
 <script>
-const f=document.getElementById('f'),st=document.getElementById('status'),msg=document.getElementById('msg'),pct=document.getElementById('pct'),res=document.getElementById('result'),go=document.getElementById('go');
-f.addEventListener('submit',async e=>{
-  e.preventDefault(); go.disabled=true; st.style.display='block'; res.innerHTML=''; pct.style.width='0';
-  const fd=new FormData(f); const body=Object.fromEntries(fd.entries()); body.offline=fd.get('offline')?'1':'0';
-  const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const j=await r.json(); if(!r.ok){msg.textContent=j.error;go.disabled=false;return}
-  const poll=setInterval(async()=>{
-    const s=await (await fetch('/api/jobs/'+j.id)).json();
-    msg.textContent=s.message; pct.style.width=(s.percent||0)+'%';
-    if(s.status==='done'){clearInterval(poll);go.disabled=false;
-      res.innerHTML=`<video controls playsinline src="${s.video_url}"></video>
-        <a class="dl" href="${s.video_url}" download>⬇ 下載影片（${s.duration}s）</a>
-        <pre>${s.title}\n${(s.hashtags||[]).join(' ')}\n劇本來源：${s.script_source==='llm'?'AI 生成':'模板（LLM 未連線）'}</pre>`;}
-    if(s.status==='error'){clearInterval(poll);go.disabled=false;}
-  },1500);
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const st=$('#status'),msg=$('#msg'),pct=$('#pct'),res=$('#result');
+$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.toggle('on',x===b));$$('form[data-tab]').forEach(f=>f.classList.toggle('hide',f.dataset.tab!==b.dataset.tab));});
+const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// 上傳聲音樣本 -> voice_id
+$$('.voicefile').forEach(inp=>inp.onchange=async()=>{
+  const form=inp.closest('form'), fd=new FormData(); fd.append('audio',inp.files[0]);
+  form.querySelector('.vstatus').textContent='上傳中…';
+  const r=await fetch('/api/voices',{method:'POST',body:fd}); const j=await r.json();
+  if(!r.ok){form.querySelector('.vstatus').textContent=j.error;return}
+  form.querySelector('[name=voice_id]').value=j.voice_id; form.querySelector('.vstatus').textContent='✔ 已上傳：'+j.name;
 });
+
+function start(){st.classList.remove('hide');res.innerHTML='';pct.style.width='0';msg.textContent='排隊中';$$('form button').forEach(b=>b.disabled=true)}
+function stop(){$$('form button').forEach(b=>b.disabled=false)}
+function poll(id,onDone){const t=setInterval(async()=>{const s=await (await fetch('/api/jobs/'+id)).json();
+  msg.textContent=s.message; pct.style.width=(s.percent||0)+'%';
+  if(s.status==='done'){clearInterval(t);stop();onDone(s)} if(s.status==='error'){clearInterval(t);stop()}},1500)}
+function showVideo(s,extra){res.innerHTML=`<video controls playsinline src="${s.video_url}"></video>
+  <a class="dl" href="${s.video_url}" download>⬇ 下載影片（${s.duration}s）</a><pre>${esc(extra)}</pre>`}
+
+// ①
+$('#f1').onsubmit=async e=>{e.preventDefault();start();
+  const fd=new FormData(e.target);const body=Object.fromEntries(fd.entries());body.offline=fd.get('offline')?'1':'0';
+  const r=await fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json(); if(!r.ok){msg.textContent=j.error;stop();return}
+  poll(j.id,s=>{const sc=s.script;const lines=sc.scenes.map((x,i)=>`${i+1}. ${x.narration}`).join('\n');
+    res.innerHTML=`<pre>原文案：${esc(s.desc)}\n來源：${esc(s.fetched_by)} ${esc(s.author)}（${s.source_duration}s）\n\n逐字稿：${esc(s.transcript||'（無）')}</pre>
+      <pre>新劇本【${esc(sc.title)}】\n${esc(lines)}\n${esc((sc.hashtags||[]).join(' '))}\n${esc((sc.compliance_notes||[]).join('\n'))}</pre>
+      <button class="sec" id="to2">帶到 ② 生成影片</button> <button class="sec" id="to3">帶到 ③ 用我的聲音講</button>`;
+    $('#to2').onclick=()=>{$('#f2 [name=script]').value=JSON.stringify(sc,null,1);$('#f2 [name=topic]').value=sc.title;$$('.tabs button')[1].click();window.scrollTo(0,0)};
+    $('#to3').onclick=()=>{$('#f3 [name=script]').value=sc.scenes.map(x=>x.narration).join('\n');$$('.tabs button')[2].click();window.scrollTo(0,0)};
+  })};
+// ②
+$('#f2').onsubmit=async e=>{e.preventDefault();start();
+  const fd=new FormData(e.target);const body=Object.fromEntries(fd.entries());body.offline=fd.get('offline')?'1':'0';delete body['']; 
+  const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json(); if(!r.ok){msg.textContent=j.error;stop();return}
+  poll(j.id,s=>showVideo(s,`${s.title}\n${(s.hashtags||[]).join(' ')}\n劇本來源：${s.script_source}`))};
+// ③
+$('#f3').onsubmit=async e=>{e.preventDefault();start();
+  const fd=new FormData(e.target); fd.set('lipsync',fd.get('lipsync')?'1':'0');
+  const r=await fetch('/api/dub',{method:'POST',body:fd}); const j=await r.json(); if(!r.ok){msg.textContent=j.error;stop();return}
+  poll(j.id,s=>showVideo(s,`配音：${s.voice_backend}｜對嘴：${s.lipsync_backend==='musetalk'?'MuseTalk':'未對嘴（只換音軌）'}`))};
 </script>
 </body>
 </html>

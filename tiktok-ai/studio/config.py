@@ -42,3 +42,23 @@ FFMPEG = os.environ.get("FFMPEG", "ffmpeg")
 
 for d in (OUTPUT_DIR, WORK_DIR):
     d.mkdir(parents=True, exist_ok=True)
+
+# ---- ① 貼抖音 / TikTok 連結 → 抓影片與文案 ----
+# Douyin_TikTok_Download_API v4（docker compose 內建，port 8081）；TikTok / YouTube 另有 yt-dlp 備援
+DOUYIN_API_URL = os.environ.get("DOUYIN_API_URL", "http://localhost:8081")
+WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "small")        # tiny/base/small/medium；6GB 顯卡 small 很夠
+WHISPER_DEVICE = os.environ.get("WHISPER_DEVICE", "auto")        # auto | cuda | cpu
+UPLOAD_DIR = Path(os.environ.get("STUDIO_UPLOAD_DIR", BASE_DIR.parent / "uploads"))
+
+# ---- ② 聲音克隆（CosyVoice FastAPI）與對嘴（MuseTalk API）----
+COSYVOICE_URL = os.environ.get("COSYVOICE_URL", "http://localhost:50000")
+COSYVOICE_SAMPLE_RATE = int(os.environ.get("COSYVOICE_SAMPLE_RATE", "24000"))   # CosyVoice2/3 = 24000，300M = 22050
+MUSETALK_URL = os.environ.get("MUSETALK_URL", "http://localhost:8600")
+SERVICE_TIMEOUT = int(os.environ.get("SERVICE_TIMEOUT", "1800"))
+
+# ---- ③ 目標秒數 → 字數 ----
+CHARS_PER_SECOND = float(os.environ.get("CHARS_PER_SECOND", "4.0"))   # 中文口語約每秒 4 字
+SECONDS_PER_SCENE = float(os.environ.get("SECONDS_PER_SCENE", "5.0"))
+DURATION_PRESETS = (15, 30, 60, 90)
+
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

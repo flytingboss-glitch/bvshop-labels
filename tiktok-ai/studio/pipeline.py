@@ -20,22 +20,33 @@ def _job_id() -> str:
 
 def make_video(topic: str, *, scene_count: int = 5, style: str = "", voice: str | None = None,
                image_backend: str | None = None, offline: bool = False, bgm: str | None = None,
+               target_seconds: int | None = None, script: script_gen.Script | None = None,
+               ref_audio: Path | None = None, ref_text: str = "",
                progress: Progress | None = None) -> dict:
+    """topic → 影片。也可直接給 script（例如 ① 從連結改寫出來的劇本）或 ref_audio（用你的聲音講）。"""
     report = progress or (lambda msg, pct: print(f"[{pct:3d}%] {msg}"))
     job_id = _job_id()
     work = config.WORK_DIR / job_id
     work.mkdir(parents=True, exist_ok=True)
 
     report("生成劇本", 5)
-    script = script_gen.generate_script(topic, scene_count=scene_count, style=style, offline=offline)
+    if script is None:
+        script = script_gen.generate_script(topic, scene_count=scene_count, style=style, offline=offline,
+                                            target_seconds=target_seconds)
     (work / "script.json").write_text(json.dumps(script.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
 
     scenes, clips, tracks, t = [], [], [], 0.0
     n = len(script.scenes)
     for i, sc in enumerate(script.scenes):
         report(f"場景 {i + 1}/{n}：配音", 10 + int(60 * i / n))
-        audio = tts.synthesize(sc.narration, work / f"voice_{i:02d}.mp3", voice=voice)
-        dur = tts._probe_duration(work / f"voice_{i:02d}.mp3") if audio else 3.0
+        if ref_audio:
+            from . import voice as voice_mod
+            voice_mod.speak(sc.narration, work / f"voice_{i:02d}.wav", Path(ref_audio), ref_text, work)
+            subprocess.run([config.FFMPEG, "-y", "-loglevel", "error", "-i", str(work / f"voice_{i:02d}.wav"),
+                            "-c:a", "libmp3lame", "-q:a", "3", str(work / f"voice_{i:02d}.mp3")], check=True)
+        else:
+            tts.synthesize(sc.narration, work / f"voice_{i:02d}.mp3", voice=voice)
+        dur = tts._probe_duration(work / f"voice_{i:02d}.mp3")
         dur = max(dur, 1.5) + 0.35  # 每句留一點呼吸
 
         report(f"場景 {i + 1}/{n}：生圖", 12 + int(60 * i / n))

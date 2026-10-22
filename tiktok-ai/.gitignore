@@ -8,3 +8,6 @@ autoclip-uploads/
 .env
 __pycache__/
 *.pyc
+uploads/
+douyin-config/
+cosyvoice-models/
