@@ -154,6 +154,7 @@ docker compose --profile gpu up -d
 | 狀況 | 怎麼辦 |
 |---|---|
 | 網頁顯示「劇本來源：模板」 | Ollama 還沒載完模型，或 `.env` 的 `LLM_MODEL` 打錯。PowerShell 跑 `docker exec ollama ollama list` 看有沒有 `gemma3:4b` |
+| ① 抖音連結一直抓不到 | 抖音常改防爬機制。最穩：抖音 App →「分享」→「保存本地」，再在 ① 分頁「或直接上傳影片」上傳，分享文字照樣貼著當原文案 |
 | ① 顯示「抓不到影片」或「Fresh cookies are needed」 | 抖音 cookie 沒設或過期，重做第 5 步（在網頁 ① 分頁貼）；TikTok 連結請確認是公開影片 |
 | ③ 顯示「對嘴：未對嘴」 | `musetalk` 容器沒開或跑失敗。Docker Desktop 點 `musetalk` 看 Logs，把紅字貼給我 |
 | 配音是無聲 | edge‑tts 連不上微軟（防火牆或公司網路）。換個網路再試 |

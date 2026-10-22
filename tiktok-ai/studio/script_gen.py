@@ -153,6 +153,7 @@ def _rule_rewrite(src: str, desc: str, scenes: int, chars: int) -> Script:
         src, desc = OpenCC("s2twp").convert(src), OpenCC("s2twp").convert(desc)
     except Exception:  # noqa: BLE001
         pass
+    src = re.sub(r"\s*#\S+", "", src).strip()   # hashtag 不唸進旁白
     for bad, good in _BANNED.items():
         src = src.replace(bad, good)
     parts = [p.strip() for p in re.split(r"(?<=[。！？!?])", src) if p.strip()]

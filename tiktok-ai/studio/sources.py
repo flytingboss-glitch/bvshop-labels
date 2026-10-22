@@ -126,6 +126,63 @@ def fetch_via_douyin_api(url: str, dst: Path) -> SourceVideo:
                        fetched_by="douyin_api")
 
 
+MOBILE_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 "
+             "(KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1")
+
+
+def _cookie_header() -> str:
+    try:
+        return config.COOKIE_HEADER_FILE.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return ""
+
+
+def _douyin_video_id(url: str) -> str:
+    """短網址 v.douyin.com/xxx 先跟隨轉址，再從最終網址取出影片 ID。"""
+    m = re.search(r"(?:video|note)/(\d{8,})|modal_id=(\d{8,})|aweme_id=(\d{8,})", url)
+    if not m:
+        r = requests.get(url, headers={"User-Agent": MOBILE_UA}, timeout=30, allow_redirects=True)
+        final = r.url
+        m = re.search(r"(?:video|note)/(\d{8,})|modal_id=(\d{8,})|aweme_id=(\d{8,})", final) \
+            or re.search(r"(?:video|note)/(\d{8,})", r.text)
+    if not m:
+        raise RuntimeError("短網址轉址後找不到影片 ID")
+    return next(g for g in m.groups() if g)
+
+
+def _parse_router_data(html: str) -> dict:
+    m = re.search(r"window\._ROUTER_DATA\s*=\s*(\{.*?\})\s*</script>", html, re.S)
+    if not m:
+        raise RuntimeError("分享頁沒有 _ROUTER_DATA（抖音可能改版或被要求驗證）")
+    import json
+    return json.loads(m.group(1))
+
+
+def fetch_via_share_page(url: str, dst: Path) -> SourceVideo:
+    """抖音手機分享頁（iesdouyin.com/share/video/<id>）內嵌影片資料，不需要 a_bogus 簽名。"""
+    vid = _douyin_video_id(url)
+    headers = {"User-Agent": MOBILE_UA, "Referer": "https://www.douyin.com/"}
+    ck = _cookie_header()
+    if ck:
+        headers["Cookie"] = ck
+    page = requests.get(f"https://www.iesdouyin.com/share/video/{vid}/", headers=headers, timeout=30)
+    page.raise_for_status()
+    data = _parse_router_data(page.text)
+    items = _walk_node(data, "item_list")
+    if not isinstance(items, list) or not items:
+        raise RuntimeError("分享頁沒有影片資料（影片可能是圖文、私密或已刪除）")
+    item = items[0]
+    lst = (((item.get("video") or {}).get("play_addr") or {}).get("url_list")) or []
+    if not lst:
+        raise RuntimeError("這則是圖文作品或沒有影片網址")
+    play = lst[0].replace("playwm", "play")     # 去浮水印
+    if play.startswith("//"):
+        play = "https:" + play
+    _download(play, dst, headers={"User-Agent": MOBILE_UA, "Referer": "https://www.iesdouyin.com/"})
+    return SourceVideo(url=url, path=dst, desc=item.get("desc", "") or "",
+                       author=((item.get("author") or {}).get("nickname")) or "", fetched_by="share_page")
+
+
 def save_cookie(text: str) -> Path:
     """接受兩種格式：瀏覽器 F12 複製的 Cookie 標頭字串（a=1; b=2），或 cookies.txt（Netscape）。統一存成 Netscape。"""
     text = text.strip()
@@ -187,8 +244,11 @@ def fetch_video(share_text: str, work: Path) -> SourceVideo:
     work.mkdir(parents=True, exist_ok=True)
     dst = work / "source.mp4"
     errors = []
-    # 抖音：yt-dlp 沒實作抖音簽名（a_bogus），一律先走 douyin-api；其他平台 yt-dlp 最穩。
-    order = (fetch_via_douyin_api, fetch_via_ytdlp) if "douyin" in url else (fetch_via_ytdlp, fetch_via_douyin_api)
+    # 抖音：先試手機分享頁（不需簽名），再試 douyin-api（需 cookie），最後 yt-dlp；其他平台 yt-dlp 最穩。
+    if "douyin" in url or "iesdouyin" in url:
+        order = (fetch_via_share_page, fetch_via_douyin_api, fetch_via_ytdlp)
+    else:
+        order = (fetch_via_ytdlp, fetch_via_douyin_api)
     for fn in order:
         try:
             sv = fn(url, dst)
@@ -196,8 +256,14 @@ def fetch_video(share_text: str, work: Path) -> SourceVideo:
             return sv
         except Exception as e:  # noqa: BLE001
             errors.append(f"{fn.__name__}: {e}")
-    hint = "（抖音需要先在 ① 分頁的「⚙️ 抖音 Cookie」貼上你的 cookie）" if "douyin" in url and not config.COOKIE_HEADER_FILE.exists() else ""
-    raise RuntimeError("抓不到影片" + hint + "。" + " | ".join(errors))
+    hint = ("抖音擋下了自動下載。最穩的做法：在抖音 App 按「分享 → 保存本地」把影片存到手機，"
+            "再用 ① 分頁的「或直接上傳影片」上傳。") if "douyin" in url else "請確認連結是公開影片。"
+    raise RuntimeError("抓不到影片。" + hint + "（技術細節：" + " | ".join(errors) + "）")
+
+
+def from_upload(path: Path, desc: str = "") -> SourceVideo:
+    """① 的保底：使用者自己上傳影片檔。"""
+    return SourceVideo(url="(上傳)", path=path, desc=desc, fetched_by="upload", duration=probe_duration(path))
 
 
 def probe_duration(path: Path) -> float:

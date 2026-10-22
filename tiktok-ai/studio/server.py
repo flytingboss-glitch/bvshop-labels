@@ -11,6 +11,7 @@ python -m studio.server  ->  http://<你的電腦IP>:7860
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 import uuid
@@ -91,14 +92,25 @@ def index():
 
 
 # ---------------- ① 連結 → 文案 ----------------
-def _extract_job(job_id: str, share_text: str, target_seconds: int, style: str, offline: bool) -> dict:
+def _extract_job(job_id: str, share_text: str, target_seconds: int, style: str, offline: bool,
+                 upload: Path | None = None, desc: str = "") -> dict:
     report = _progress(job_id)
     work = config.WORK_DIR / f"src-{job_id}"
-    report("下載影片", 10)
-    sv = sources.fetch_video(share_text, work)
+    work.mkdir(parents=True, exist_ok=True)
+    if upload is not None:
+        report("讀取上傳的影片", 10)
+        dst = work / "source.mp4"
+        upload.replace(dst)
+        sv = sources.from_upload(dst, desc)
+    else:
+        report("下載影片", 10)
+        sv = sources.fetch_video(share_text, work)
     report("逐字稿（faster-whisper）", 40)
-    wav = sources.extract_audio(sv.path, work / "source_16k.wav")
-    sv.transcript, sv.segments = sources.transcribe(wav)
+    try:
+        wav = sources.extract_audio(sv.path, work / "source_16k.wav")
+        sv.transcript, sv.segments = sources.transcribe(wav)
+    except Exception as e:  # noqa: BLE001  影片沒有音軌（純音樂 / 無聲）時，改用原文案改寫
+        print(f"[extract] 無法取音訊：{e}")
     report("改寫成合規劇本", 75)
     script = script_gen.rewrite_from_transcript(sv.transcript, sv.desc, target_seconds, style, offline=offline)
     (work / "script.json").write_text(json.dumps(script.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -111,11 +123,21 @@ def _extract_job(job_id: str, share_text: str, target_seconds: int, style: str, 
 def api_extract():
     data = request.get_json(silent=True) or request.form
     share = (data.get("url") or "").strip()
-    if not share:
-        return jsonify({"error": "請貼上分享連結"}), 400
-    job_id = _new_job("extract", url=share)
+    f = request.files.get("video")
+    has_file = bool(f and f.filename)
+    if has_file and Path(f.filename).suffix.lower() not in ALLOWED_VIDEO:
+        return jsonify({"error": "請上傳 mp4 / mov 影片"}), 400
+    if not share and not has_file:
+        return jsonify({"error": "請貼上分享連結，或上傳影片"}), 400
+    job_id = _new_job("extract", url=share or (f.filename if has_file else ""))
+    upload = None
+    if has_file:
+        upload = config.UPLOAD_DIR / f"src_{job_id}{Path(f.filename).suffix.lower()}"
+        f.save(upload)
+    # 分享文字裡 # 之前的部分就是原文案，上傳時拿來當 desc
+    desc = re.sub(r"https?://\S+.*$", "", share).strip() if share else ""
     _spawn(job_id, _extract_job, job_id, share, int(data.get("target_seconds") or 30),
-           (data.get("style") or "").strip(), _bool(data.get("offline")))
+           (data.get("style") or "").strip(), _bool(data.get("offline")), upload, desc)
     return jsonify({"id": job_id})
 
 
