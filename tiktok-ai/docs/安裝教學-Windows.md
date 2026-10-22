@@ -83,11 +83,18 @@ Docker 是「把一整套軟體打包好，一鍵開關」的工具，之後所�
 
 ## 第 5 步：讓「① 貼抖音連結」能用（一次性）
 
-抖音要有 cookie 才給影片（不一定要登入，但登入最穩）：
+抖音要有 cookie 才給影片（不一定要登入，但登入最穩）。
 
-1. 電腦瀏覽器打開 <https://www.douyin.com>（建議登入）。
-2. 按 `F12` → 上方 **Network（網路）** → 重新整理頁面 → 點清單裡任一個 `douyin.com` 的請求 → 右側 **Headers** 往下找 **Cookie:** → 右鍵 **Copy value**。
-3. 回到 `http://localhost:7860` 的 ① 分頁，展開「⚙️ 抖音 Cookie」，貼上 → 儲存。看到「✔ 已設定」即可。
+**方法 A（推薦，兩下搞定）**
+1. Chrome 或 Edge 安裝擴充功能 **Get cookies.txt LOCALLY**（Chrome 線上應用程式商店搜尋這個名字，Edge 也能裝 Chrome 擴充功能）。
+2. 打開 <https://www.douyin.com> 並登入。
+3. 點瀏覽器右上角的擴充功能圖示（餅乾圖案）→ 按 **Copy**。
+4. 回到網頁的 ① 分頁，展開「⚙️ 抖音 Cookie」，貼上 → 儲存。看到「✔ 已設定」即可。
+
+**方法 B（不裝擴充功能）**
+1. 登入 douyin.com → 按 `F12` → 上方 **Network（網路）** → 重新整理頁面。
+2. 點清單裡任一個 `douyin.com` 的請求 → 右側 **Headers** 往下找 **Cookie:** → 右鍵 **Copy value**。
+3. 同上貼到網頁儲存。
 
 Cookie 幾週會過期，再出現「需要 cookie」時重貼一次。TikTok、YouTube 連結不用這步。
 

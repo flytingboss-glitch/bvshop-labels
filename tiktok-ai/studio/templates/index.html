@@ -66,7 +66,8 @@
     <button>抓文案並改寫</button>
     <details style="margin-top:14px">
       <summary style="cursor:pointer;font-size:14px">⚙️ 抖音 Cookie（抖音連結必填一次；TikTok / YouTube 不用）<span id="ckstat" class="ok"></span></summary>
-      <div class="hint" style="margin-top:8px">電腦瀏覽器登入 douyin.com → 按 F12 → Network（網路）→ 重新整理 → 點任一個 douyin.com 的請求 → Headers 裡找 <b>Cookie:</b> → 右鍵 Copy value → 貼到下面。或用「Get cookies.txt LOCALLY」擴充功能匯出的 cookies.txt 內容也可以。</div>
+      <div class="hint" style="margin-top:8px"><b>最簡單（推薦）</b>：Chrome / Edge 安裝擴充功能 <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Get cookies.txt LOCALLY</a> → 打開並登入 douyin.com → 點擴充功能圖示 → 按 <b>Copy</b> → 貼到下面 → 儲存。<br>
+      <b>不裝擴充功能</b>：登入 douyin.com → F12 → Network（網路）→ 重新整理 → 點任一個 douyin.com 請求 → Headers → 找 <b>Cookie:</b> → 右鍵 Copy value → 貼到下面。</div>
       <textarea id="ck" rows="3" placeholder="ttwid=…; passport_csrf_token=…; sessionid=…"></textarea>
       <button type="button" class="sec" id="cksave">儲存 Cookie</button>
     </details>
