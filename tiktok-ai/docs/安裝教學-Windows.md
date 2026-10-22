@@ -152,6 +152,7 @@ docker compose --profile gpu up -d
 | ③ 顯示「對嘴：未對嘴」 | `musetalk` 容器沒開或跑失敗。Docker Desktop 點 `musetalk` 看 Logs，把紅字貼給我 |
 | 配音是無聲 | edge‑tts 連不上微軟（防火牆或公司網路）。換個網路再試 |
 | 顯示 CUDA out of memory | 顯存不夠：停掉 `comfyui` 或 `musetalk` 其中一個，或把 Ollama 換成 `gemma3:1b` |
+| `ports are not available … forbidden by its access permissions` | Windows 把那個埠保留走了。重新按兩下「安裝.bat」會自動改用別的埠；手動的話在 `.env` 把 `STUDIO_PORT=7860` 改成 `17860`，再 `docker compose up -d` |
 | 想全部重來 | PowerShell：`docker compose down` 再 `docker compose up -d` |
 
 遇到任何錯誤，把紅字訊息整段貼給我就好。

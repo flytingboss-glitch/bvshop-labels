@@ -17,6 +17,33 @@ function Ok($msg)   { Write-Host "    ✔ $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "    ! $msg" -ForegroundColor Yellow }
 function Fail($msg) { Write-Host "`n✘ $msg" -ForegroundColor Red; Read-Host "按 Enter 結束"; exit 1 }
 
+# Windows（Hyper-V / WSL）會隨機保留一些埠，被保留的埠 Docker 開不起來（"forbidden by its access permissions"）
+function Get-ExcludedRanges {
+    $r = @()
+    try {
+        netsh interface ipv4 show excludedportrange protocol=tcp 2>$null | ForEach-Object {
+            if ($_ -match '^\s*(\d+)\s+(\d+)') { $r += ,@([int]$matches[1], [int]$matches[2]) }
+        }
+    } catch {}
+    return $r
+}
+function Test-PortFree($port, $ranges) {
+    foreach ($x in $ranges) { if ($port -ge $x[0] -and $port -le $x[1]) { return $false } }
+    try { if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { return $false } } catch {}
+    return $true
+}
+function Get-FreePort($preferred, $ranges) {
+    foreach ($p in @($preferred, ($preferred + 10000), ($preferred + 20000)) + (20000..20100)) {
+        if ($p -lt 65535 -and (Test-PortFree $p $ranges)) { return $p }
+    }
+    return $preferred
+}
+function Set-EnvValue($file, $key, $value) {
+    $lines = Get-Content $file -Encoding UTF8
+    if ($lines -match "^$key=") { $lines = $lines -replace "^$key=.*$", "$key=$value" } else { $lines += "$key=$value" }
+    Set-Content $file $lines -Encoding UTF8
+}
+
 # ---------- 0. 權限與環境 ----------
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) { Fail "請用「安裝.bat」啟動（需要系統管理員權限）" }
@@ -84,8 +111,18 @@ Ok "專案已就位"
 Set-Location $Install
 if (-not (Test-Path ".env")) { Copy-Item ".env.example" ".env"; Ok "已建立 .env（預設：gemma3:4b、Edge-TTS 台灣腔、純色卡片圖）" } else { Ok ".env 已存在，保留你的設定" }
 
+Step "挑選沒被 Windows 保留的埠"
+$ranges = Get-ExcludedRanges
+$Port = Get-FreePort 7860 $ranges
+$OllamaPort = Get-FreePort 11434 $ranges
+Set-EnvValue ".env" "STUDIO_PORT" $Port
+Set-EnvValue ".env" "OLLAMA_PORT" $OllamaPort
+Set-EnvValue ".env" "COMFYUI_PORT" (Get-FreePort 8188 $ranges)
+Ok "網頁埠 $Port、Ollama 埠 $OllamaPort"
+
 # ---------- 5. 啟動 ----------
 Step "啟動容器（第一次要下載映像與套件，約 5~15 分鐘）"
+docker compose down 2>$null | Out-Null
 docker compose up -d --build
 if ($LASTEXITCODE -ne 0) { Fail "docker compose 失敗，請把上面的紅字貼給 Claude" }
 Ok "studio / ollama / douyin-api 已啟動"

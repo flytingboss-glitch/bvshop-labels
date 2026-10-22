@@ -11,7 +11,7 @@ services:
   studio:                              # 本專案：一句話 -> 直式短影片（手機友善網頁）
     build: ./studio
     container_name: tiktok-studio
-    ports: ["7860:7860"]
+    ports: ["${STUDIO_PORT:-7860}:7860"]
     env_file: [.env]
     volumes:
       - ./output:/data/output
@@ -24,7 +24,7 @@ services:
   douyin-api:                          # ① 貼抖音 / TikTok 連結抓影片與文案（Apache-2.0）。抖音需在容器內填 cookie，見 README
     image: evil0ctal/douyin_tiktok_download_api:V4.1.2
     container_name: douyin-api
-    ports: ["8081:80"]
+    expose: ["80"]                     # 只給 studio 內部用，不對外開埠（Windows 常把 8xxx 埠保留走，開了反而出錯）
     volumes:
       - ./douyin-config:/app/crawlers/douyin/web:rw
     restart: unless-stopped
@@ -32,7 +32,7 @@ services:
   ollama:                              # 免費本機 LLM（劇本）；首次：docker exec ollama ollama pull gemma3:4b（6GB 顯卡）或 qwen2.5:7b
     image: ollama/ollama:latest
     container_name: ollama
-    ports: ["11434:11434"]
+    ports: ["${OLLAMA_PORT:-11434}:11434"]
     volumes: [ollama:/root/.ollama]
     restart: unless-stopped
     # 有 NVIDIA 顯卡再把下面三行打開，速度快很多
@@ -42,7 +42,7 @@ services:
     profiles: [gpu]
     image: yanwk/comfyui-boot:cu124-slim
     container_name: comfyui
-    ports: ["8188:8188"]
+    ports: ["${COMFYUI_PORT:-8188}:8188"]
     volumes:
       - ./comfyui:/root
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
@@ -52,8 +52,8 @@ services:
     profiles: [voice]
     build: { context: https://github.com/FunAudioLLM/CosyVoice.git, dockerfile: runtime/python/Dockerfile }
     container_name: cosyvoice
+    expose: ["50000"]
     command: ["/bin/bash", "-c", "cd /opt/CosyVoice/CosyVoice/runtime/python/fastapi && python3 server.py --port 50000 --model_dir ${COSYVOICE_MODEL:-iic/CosyVoice2-0.5B}"]
-    ports: ["50000:50000"]
     volumes: [./cosyvoice-models:/root/.cache/modelscope]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     restart: unless-stopped
@@ -62,7 +62,7 @@ services:
     profiles: [voice]
     build: ./services/musetalk-api
     container_name: musetalk
-    ports: ["8600:8600"]
+    expose: ["8600"]
     environment:
       - MUSETALK_EXTRA_ARGS=--use_float16 --batch_size 4
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
@@ -73,7 +73,7 @@ services:
     build: { context: https://github.com/harry0703/MoneyPrinterTurbo.git }
     container_name: moneyprinterturbo
     command: ["streamlit", "run", "./webui/Main.py", "--browser.serverAddress=0.0.0.0", "--server.enableCORS=True", "--browser.gatherUsageStats=False"]
-    ports: ["8501:8501"]
+    ports: ["${MPT_PORT:-8501}:8501"]
     volumes: [./mpt:/MoneyPrinterTurbo/storage]
     env_file: [.env]
     restart: unless-stopped
@@ -82,7 +82,7 @@ services:
     profiles: [extra]
     build: { context: https://github.com/zhouxiaoka/autoclip.git }
     container_name: autoclip
-    ports: ["3000:3000", "8000:8000"]
+    ports: ["${AUTOCLIP_PORT:-3000}:3000", "${AUTOCLIP_API_PORT:-8000}:8000"]
     environment:
       - REDIS_URL=redis://redis:6379/0
       - LLM_PROVIDER=openai
