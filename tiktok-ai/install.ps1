@@ -19,7 +19,7 @@ function Fail($msg) { Write-Host "`n✘ $msg" -ForegroundColor Red; Read-Host "�
 # Docker 會把進度寫到 stderr，Windows PowerShell 在 ErrorActionPreference=Stop 時會誤判成錯誤，所以一律經由 cmd 執行
 function Run-Native([string]$cmdline) {
     $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-    cmd /c $cmdline
+    cmd /c $cmdline | Out-Host          # Out-Host：輸出直接印到畫面，不混進函式的回傳值
     $code = $LASTEXITCODE
     $ErrorActionPreference = $old
     return $code
