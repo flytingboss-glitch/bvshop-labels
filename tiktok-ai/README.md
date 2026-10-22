@@ -30,6 +30,8 @@
                                           └──► FFmpeg              Ken Burns + ASS 字幕 + 合成
 ```
 
+> **零基礎從頭裝？** 直接看 **[docs/安裝教學-Windows.md](docs/安裝教學-Windows.md)**：Docker 安裝、顯卡設定、手機連線、抖音 cookie、每個分頁怎麼按，含常見問題表。
+
 ## 你的機器：RTX 4050 Laptop 6GB 的建議設定
 
 6GB 顯存可以做完 ①②③，但要挑小模型，而且**生圖與對嘴不要同時跑**：
