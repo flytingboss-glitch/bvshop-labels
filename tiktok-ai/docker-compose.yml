@@ -21,12 +21,10 @@ services:
     depends_on: [ollama, douyin-api]
     restart: unless-stopped
 
-  douyin-api:                          # ① 貼抖音 / TikTok 連結抓影片與文案（Apache-2.0）。抖音需在容器內填 cookie，見 README
+  douyin-api:                          # ① 備援解析器（Apache-2.0），主要走 studio 內建的 yt-dlp + 你在網頁貼的抖音 cookie
     image: evil0ctal/douyin_tiktok_download_api:V4.1.2
     container_name: douyin-api
-    expose: ["80"]                     # 只給 studio 內部用，不對外開埠（Windows 常把 8xxx 埠保留走，開了反而出錯）
-    volumes:
-      - ./douyin-config:/app/crawlers/douyin/web:rw
+    expose: ["80"]                     # 只給 studio 內部用，不對外開埠
     restart: unless-stopped
 
   ollama:                              # 免費本機 LLM（劇本）；首次：docker exec ollama ollama pull gemma3:4b（6GB 顯卡）或 qwen2.5:7b

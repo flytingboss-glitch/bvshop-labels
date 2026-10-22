@@ -83,14 +83,13 @@ Docker 是「把一整套軟體打包好，一鍵開關」的工具，之後所�
 
 ## 第 5 步：讓「① 貼抖音連結」能用（一次性）
 
-抖音要登入才給影片，所以要給它你的 cookie：
+抖音要有 cookie 才給影片（不一定要登入，但登入最穩）：
 
-1. 電腦瀏覽器打開 <https://www.douyin.com> 並登入。
-2. 按 `F12` → 上方 **Network（網路）** → 重新整理頁面 → 點清單裡任一個 `douyin.com` 的請求 → 右側 **Headers** 往下找 **Cookie:** → 右鍵 Copy value。
-3. 打開 `D:\tiktok-ai\tiktok-ai\douyin-config\config.yaml`（第一次啟動後會自動出現），找到 `cookie:` 那行，把引號裡的內容換成剛複製的。
-4. PowerShell：`docker compose restart douyin-api`
+1. 電腦瀏覽器打開 <https://www.douyin.com>（建議登入）。
+2. 按 `F12` → 上方 **Network（網路）** → 重新整理頁面 → 點清單裡任一個 `douyin.com` 的請求 → 右側 **Headers** 往下找 **Cookie:** → 右鍵 **Copy value**。
+3. 回到 `http://localhost:7860` 的 ① 分頁，展開「⚙️ 抖音 Cookie」，貼上 → 儲存。看到「✔ 已設定」即可。
 
-TikTok、YouTube 連結不用這步。
+Cookie 幾週會過期，再出現「需要 cookie」時重貼一次。TikTok、YouTube 連結不用這步。
 
 ---
 
@@ -148,7 +147,7 @@ docker compose --profile gpu up -d
 | 狀況 | 怎麼辦 |
 |---|---|
 | 網頁顯示「劇本來源：模板」 | Ollama 還沒載完模型，或 `.env` 的 `LLM_MODEL` 打錯。PowerShell 跑 `docker exec ollama ollama list` 看有沒有 `gemma3:4b` |
-| ① 顯示「抓不到影片」 | 抖音 cookie 過期，重做第 5 步；TikTok 連結請確認是公開影片 |
+| ① 顯示「抓不到影片」或「Fresh cookies are needed」 | 抖音 cookie 沒設或過期，重做第 5 步（在網頁 ① 分頁貼）；TikTok 連結請確認是公開影片 |
 | ③ 顯示「對嘴：未對嘴」 | `musetalk` 容器沒開或跑失敗。Docker Desktop 點 `musetalk` 看 Logs，把紅字貼給我 |
 | 配音是無聲 | edge‑tts 連不上微軟（防火牆或公司網路）。換個網路再試 |
 | 顯示 CUDA out of memory | 顯存不夠：停掉 `comfyui` 或 `musetalk` 其中一個，或把 Ollama 換成 `gemma3:1b` |

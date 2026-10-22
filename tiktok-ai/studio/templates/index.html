@@ -64,6 +64,12 @@
     <label>風格（選填）</label><input name="style" placeholder="保留原片節奏 / 更口語 / 帶貨…">
     <div class="chk"><input type="checkbox" name="offline" id="off1"><label for="off1" style="margin:0">離線（不呼叫 LLM，只做合規清洗）</label></div>
     <button>抓文案並改寫</button>
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer;font-size:14px">⚙️ 抖音 Cookie（抖音連結必填一次；TikTok / YouTube 不用）<span id="ckstat" class="ok"></span></summary>
+      <div class="hint" style="margin-top:8px">電腦瀏覽器登入 douyin.com → 按 F12 → Network（網路）→ 重新整理 → 點任一個 douyin.com 的請求 → Headers 裡找 <b>Cookie:</b> → 右鍵 Copy value → 貼到下面。或用「Get cookies.txt LOCALLY」擴充功能匯出的 cookies.txt 內容也可以。</div>
+      <textarea id="ck" rows="3" placeholder="ttwid=…; passport_csrf_token=…; sessionid=…"></textarea>
+      <button type="button" class="sec" id="cksave">儲存 Cookie</button>
+    </details>
   </form>
 
   <!-- ② -->
@@ -130,6 +136,10 @@ function poll(id,onDone){const t=setInterval(async()=>{const s=await (await fetc
 function showVideo(s,extra){res.innerHTML=`<video controls playsinline src="${s.video_url}"></video>
   <a class="dl" href="${s.video_url}" download>⬇ 下載影片（${s.duration}s）</a><pre>${esc(extra)}</pre>`}
 
+// 抖音 cookie
+async function ckRefresh(){const s=await (await fetch('/api/settings/douyin_cookie')).json();$('#ckstat').textContent=s.set?`　✔ 已設定（${s.count} 筆，${s.updated}）`:'　尚未設定'}
+ckRefresh();
+$('#cksave').onclick=async()=>{const r=await fetch('/api/settings/douyin_cookie',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookie:$('#ck').value})});const j=await r.json();if(!r.ok){alert(j.error);return}$('#ck').value='';ckRefresh();alert('已儲存，現在可以貼抖音連結了')};
 // ①
 $('#f1').onsubmit=async e=>{e.preventDefault();start();
   const fd=new FormData(e.target);const body=Object.fromEntries(fd.entries());body.offline=fd.get('offline')?'1':'0';

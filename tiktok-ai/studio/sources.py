@@ -123,11 +123,45 @@ def fetch_via_douyin_api(url: str, dst: Path) -> SourceVideo:
                        fetched_by="douyin_api")
 
 
+def save_cookie(text: str) -> Path:
+    """接受兩種格式：瀏覽器 F12 複製的 Cookie 標頭字串（a=1; b=2），或 cookies.txt（Netscape）。統一存成 Netscape。"""
+    text = text.strip()
+    if not text:
+        raise ValueError("Cookie 是空的")
+    config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    if text.startswith("# Netscape") or "\t" in text:
+        config.COOKIE_FILE.write_text(text if text.startswith("#") else "# Netscape HTTP Cookie File\n" + text, encoding="utf-8")
+        return config.COOKIE_FILE
+    lines = ["# Netscape HTTP Cookie File"]
+    for part in text.split(";"):
+        if "=" not in part:
+            continue
+        k, v = part.strip().split("=", 1)
+        if k:
+            lines.append(f".douyin.com\tTRUE\t/\tTRUE\t0\t{k.strip()}\t{v.strip()}")
+    if len(lines) == 1:
+        raise ValueError("看起來不是 Cookie（格式應為 a=1; b=2; …）")
+    config.COOKIE_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return config.COOKIE_FILE
+
+
+def cookie_status() -> dict:
+    if config.COOKIE_FILE.exists():
+        import datetime
+        n = sum(1 for l in config.COOKIE_FILE.read_text(encoding="utf-8").splitlines() if l and not l.startswith("#"))
+        return {"set": True, "count": n,
+                "updated": datetime.datetime.fromtimestamp(config.COOKIE_FILE.stat().st_mtime).strftime("%Y-%m-%d %H:%M")}
+    return {"set": False}
+
+
 def fetch_via_ytdlp(url: str, dst: Path) -> SourceVideo:
     import yt_dlp  # 延遲載入
 
     opts = {"outtmpl": str(dst.with_suffix("")) + ".%(ext)s", "format": "bv*[height<=1080]+ba/b[height<=1080]/b",
-            "merge_output_format": "mp4", "quiet": True, "noplaylist": True}
+            "merge_output_format": "mp4", "quiet": True, "noplaylist": True,
+            "http_headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"}}
+    if config.COOKIE_FILE.exists():
+        opts["cookiefile"] = str(config.COOKIE_FILE)
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
     got = next(dst.parent.glob(dst.stem + ".*"))
@@ -142,14 +176,17 @@ def fetch_video(share_text: str, work: Path) -> SourceVideo:
     work.mkdir(parents=True, exist_ok=True)
     dst = work / "source.mp4"
     errors = []
-    for fn in (fetch_via_douyin_api, fetch_via_ytdlp):
+    # 抖音：有 cookie 就先走 yt-dlp；其他平台 yt-dlp 本來就最穩。douyin-api 容器當備援。
+    order = (fetch_via_ytdlp, fetch_via_douyin_api) if (config.COOKIE_FILE.exists() or "douyin" not in url) else (fetch_via_douyin_api, fetch_via_ytdlp)
+    for fn in order:
         try:
             sv = fn(url, dst)
             sv.duration = probe_duration(dst)
             return sv
         except Exception as e:  # noqa: BLE001
             errors.append(f"{fn.__name__}: {e}")
-    raise RuntimeError("抓不到影片。" + " | ".join(errors))
+    hint = "（抖音需要先在 ① 分頁的「⚙️ 抖音 Cookie」貼上你的 cookie）" if "douyin" in url and not config.COOKIE_FILE.exists() else ""
+    raise RuntimeError("抓不到影片" + hint + "。" + " | ".join(errors))
 
 
 def probe_duration(path: Path) -> float:

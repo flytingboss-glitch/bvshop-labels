@@ -62,9 +62,8 @@ docker exec ollama ollama pull gemma3:4b      # 第一次：下載劇本模型�
 **手機使用**：同一個 Wi‑Fi 打開 `http://<電腦IP>:7860`。出門在外想用，裝 [Tailscale](https://tailscale.com)（免費）在手機和電腦上，網址改成 Tailscale IP 即可；不要直接把 7860 開到公網（沒有登入機制）。
 
 ### ① 抖音連結需要 cookie
-`douyin-api`（Evil0ctal/Douyin_TikTok_Download_API v4）解析抖音前要填一次你的抖音網頁 cookie：
-用瀏覽器登入 douyin.com → F12 → Network 任一請求複製 `Cookie` → 貼到 `douyin-config/config.yaml` 的 `cookie:` 欄 → `docker compose restart douyin-api`。
-TikTok / YouTube 連結不需要，會自動走 yt‑dlp 備援。
+瀏覽器登入 douyin.com → F12 → Network 任一請求複製 `Cookie` 值 → 網頁 ① 分頁展開「⚙️ 抖音 Cookie」貼上儲存。
+之後抖音連結走 yt‑dlp 帶 cookie 抓；TikTok / YouTube 不需要 cookie。
 
 ### ③ 聲音克隆 + 對嘴
 ```bash

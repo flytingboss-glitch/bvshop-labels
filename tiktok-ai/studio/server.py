@@ -119,6 +119,21 @@ def api_extract():
     return jsonify({"id": job_id})
 
 
+@app.get("/api/settings/douyin_cookie")
+def get_cookie():
+    return jsonify(sources.cookie_status())
+
+
+@app.post("/api/settings/douyin_cookie")
+def set_cookie():
+    data = request.get_json(silent=True) or request.form
+    try:
+        sources.save_cookie(data.get("cookie") or "")
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(sources.cookie_status())
+
+
 # ---------------- 聲音樣本 ----------------
 @app.post("/api/voices")
 def api_voices():
