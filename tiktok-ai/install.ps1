@@ -16,12 +16,20 @@ function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Ok($msg)   { Write-Host "    ✔ $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "    ! $msg" -ForegroundColor Yellow }
 function Fail($msg) { Write-Host "`n✘ $msg" -ForegroundColor Red; Read-Host "按 Enter 結束"; exit 1 }
+# Docker 會把進度寫到 stderr，Windows PowerShell 在 ErrorActionPreference=Stop 時會誤判成錯誤，所以一律經由 cmd 執行
+function Run-Native([string]$cmdline) {
+    $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+    cmd /c $cmdline
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $old
+    return $code
+}
 
 # Windows（Hyper-V / WSL）會隨機保留一些埠，被保留的埠 Docker 開不起來（"forbidden by its access permissions"）
 function Get-ExcludedRanges {
     $r = @()
     try {
-        netsh interface ipv4 show excludedportrange protocol=tcp 2>$null | ForEach-Object {
+        cmd /c "netsh interface ipv4 show excludedportrange protocol=tcp 2>nul" | ForEach-Object {
             if ($_ -match '^\s*(\d+)\s+(\d+)') { $r += ,@([int]$matches[1], [int]$matches[2]) }
         }
     } catch {}
@@ -49,13 +57,13 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 if (-not $isAdmin) { Fail "請用「安裝.bat」啟動（需要系統管理員權限）" }
 if ($PSVersionTable.PSVersion.Major -lt 5) { Fail "PowerShell 版本太舊，請更新 Windows" }
 Step "檢查顯示卡"
-try { $gpu = (nvidia-smi --query-gpu=name,memory.total --format=csv,noheader) 2>$null; Ok "NVIDIA：$gpu" }
-catch { Warn "找不到 nvidia-smi，請先更新 NVIDIA 驅動（NVIDIA App → 驅動程式）。沒有 GPU 也能做 ①②，只是沒有生圖與對嘴。" }
+$gpu = cmd /c "nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>nul"
+if ($gpu) { Ok "NVIDIA：$gpu" } else { Warn "找不到 nvidia-smi，請先更新 NVIDIA 驅動（NVIDIA App → 驅動程式）。沒有 GPU 也能做 ①②，只是沒有生圖與對嘴。" }
 
 # ---------- 1. WSL2 ----------
 Step "啟用 WSL2（Docker 需要）"
 $wslOk = $false
-try { wsl --status *> $null; $wslOk = ($LASTEXITCODE -eq 0) } catch {}
+$wslOk = ((Run-Native "wsl --status >nul 2>&1") -eq 0)
 if (-not $wslOk) {
     dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart | Out-Null
     dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart | Out-Null
@@ -65,7 +73,7 @@ if (-not $wslOk) {
     if ($r -eq "y") { Restart-Computer -Force }
     exit 0
 }
-try { wsl --update *> $null } catch {}
+Run-Native "wsl --update >nul 2>&1" | Out-Null
 Ok "WSL2 就緒"
 
 # ---------- 2. Docker Desktop ----------
@@ -88,7 +96,7 @@ if (-not (Get-Process "Docker Desktop" -ErrorAction SilentlyContinue)) {
 $env:Path += ";$env:ProgramFiles\Docker\Docker\resources\bin"
 $tries = 0
 while ($true) {
-    try { docker info *> $null; if ($LASTEXITCODE -eq 0) { break } } catch {}
+    if ((Run-Native "docker info >nul 2>&1") -eq 0) { break }
     $tries++
     if ($tries -gt 60) { Fail "Docker 一直沒起來。請手動打開 Docker Desktop，看到左下角綠色 Engine running 後再按一次「安裝.bat」。" }
     Write-Host "    等待 Docker 啟動…($tries)" ; Start-Sleep 5
@@ -122,14 +130,12 @@ Ok "網頁埠 $Port、Ollama 埠 $OllamaPort"
 
 # ---------- 5. 啟動 ----------
 Step "啟動容器（第一次要下載映像與套件，約 5~15 分鐘）"
-docker compose down 2>$null | Out-Null
-docker compose up -d --build
-if ($LASTEXITCODE -ne 0) { Fail "docker compose 失敗，請把上面的紅字貼給 Claude" }
+Run-Native "docker compose down >nul 2>&1" | Out-Null
+if ((Run-Native "docker compose up -d --build") -ne 0) { Fail "docker compose 失敗，請把上面的紅字貼給 Claude" }
 Ok "studio / ollama / douyin-api 已啟動"
 
 Step "下載劇本模型 $Model（約 3GB）"
-docker exec ollama ollama pull $Model
-if ($LASTEXITCODE -ne 0) { Warn "模型下載失敗，稍後可手動執行：docker exec ollama ollama pull $Model" } else { Ok "模型就緒" }
+if ((Run-Native "docker exec ollama ollama pull $Model") -ne 0) { Warn "模型下載失敗，稍後可手動執行：docker exec ollama ollama pull $Model" } else { Ok "模型就緒" }
 
 # ---------- 6. 防火牆（手機連線用）----------
 Step "開放手機連線（同一個 Wi-Fi）"
