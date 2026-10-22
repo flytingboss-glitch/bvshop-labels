@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -40,20 +41,11 @@ def extract_url(text: str) -> str:
 
 
 def _walk(obj, want: tuple[str, ...]):
-    """在任意巢狀 JSON 裡找第一個符合 key 的字串值（API 回傳格式版本差異大，用這招最耐用）。"""
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            if k in want and isinstance(v, str) and v.strip():
-                return v
-        for v in obj.values():
-            r = _walk(v, want)
-            if r:
-                return r
-    elif isinstance(obj, list):
-        for v in obj:
-            r = _walk(v, want)
-            if r:
-                return r
+    """在任意巢狀 JSON 裡依 want 的優先順序找字串值（API 回傳格式版本差異大，用這招最耐用）。"""
+    for key in want:
+        r = _walk_node(obj, key)
+        if isinstance(r, str) and r.strip():
+            return r
     return None
 
 
@@ -72,7 +64,7 @@ def _find_play_url(data) -> str | None:
             lst = inner.get("url_list") if isinstance(inner, dict) else None
             if lst:
                 return lst[-1]
-    return _walk(data, ("nwm_video_url", "nwm_video_url_HQ", "video_url", "download_addr"))
+    return _walk(data, ("nwm_video_url_HQ", "nwm_video_url", "video_url", "download_addr"))
 
 
 def _walk_node(obj, key: str):
@@ -107,8 +99,19 @@ def _download(url: str, dst: Path, headers: dict | None = None) -> Path:
 
 def fetch_via_douyin_api(url: str, dst: Path) -> SourceVideo:
     api = config.DOUYIN_API_URL.rstrip("/") + "/api/hybrid/video_data"
-    r = requests.get(api, params={"url": url, "minimal": "false"}, timeout=60)
-    r.raise_for_status()
+    last = None
+    for attempt in range(6):   # 剛存 cookie 時 douyin-api 會重啟，等它起來
+        try:
+            r = requests.get(api, params={"url": url, "minimal": "true"}, timeout=60)
+            if r.status_code == 400:
+                raise RuntimeError("抖音服務回 400：cookie 無效 / 過期，或影片不公開。請重新貼一次 cookie（登入狀態）")
+            r.raise_for_status()
+            break
+        except (requests.ConnectionError, requests.Timeout) as e:
+            last = e
+            time.sleep(4)
+    else:
+        raise RuntimeError(f"抖音服務沒有回應：{last}")
     data = r.json()
     if data.get("code") not in (None, 200, 0):
         raise RuntimeError(f"Douyin API 回應 {data.get('code')}：{data.get('message') or data.get('msg')}")
@@ -129,19 +132,27 @@ def save_cookie(text: str) -> Path:
     if not text:
         raise ValueError("Cookie 是空的")
     config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    pairs: list[tuple[str, str]] = []
     if text.startswith("# Netscape") or "\t" in text:
-        config.COOKIE_FILE.write_text(text if text.startswith("#") else "# Netscape HTTP Cookie File\n" + text, encoding="utf-8")
-        return config.COOKIE_FILE
-    lines = ["# Netscape HTTP Cookie File"]
-    for part in text.split(";"):
-        if "=" not in part:
-            continue
-        k, v = part.strip().split("=", 1)
-        if k:
-            lines.append(f".douyin.com\tTRUE\t/\tTRUE\t0\t{k.strip()}\t{v.strip()}")
-    if len(lines) == 1:
-        raise ValueError("看起來不是 Cookie（格式應為 a=1; b=2; …）")
-    config.COOKIE_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        for line in text.splitlines():
+            raw = line[len("#HttpOnly_"):] if line.startswith("#HttpOnly_") else line
+            if not raw or raw.startswith("#"):
+                continue
+            cols = raw.split("\t")
+            if len(cols) >= 7 and "douyin" in cols[0]:
+                pairs.append((cols[5].strip(), cols[6].strip()))
+        netscape = text if text.startswith("#") else "# Netscape HTTP Cookie File\n" + text
+    else:
+        for part in text.split(";"):
+            if "=" in part:
+                k, v = part.strip().split("=", 1)
+                if k:
+                    pairs.append((k.strip(), v.strip()))
+        netscape = "# Netscape HTTP Cookie File\n" + "".join(f".douyin.com\tTRUE\t/\tTRUE\t0\t{k}\t{v}\n" for k, v in pairs)
+    if not pairs:
+        raise ValueError("看起來不是 Cookie（格式應為 a=1; b=2; … 或 cookies.txt 內容）")
+    config.COOKIE_FILE.write_text(netscape, encoding="utf-8")
+    config.COOKIE_HEADER_FILE.write_text("; ".join(f"{k}={v}" for k, v in pairs), encoding="utf-8")
     return config.COOKIE_FILE
 
 
@@ -176,8 +187,8 @@ def fetch_video(share_text: str, work: Path) -> SourceVideo:
     work.mkdir(parents=True, exist_ok=True)
     dst = work / "source.mp4"
     errors = []
-    # 抖音：有 cookie 就先走 yt-dlp；其他平台 yt-dlp 本來就最穩。douyin-api 容器當備援。
-    order = (fetch_via_ytdlp, fetch_via_douyin_api) if (config.COOKIE_FILE.exists() or "douyin" not in url) else (fetch_via_douyin_api, fetch_via_ytdlp)
+    # 抖音：yt-dlp 沒實作抖音簽名（a_bogus），一律先走 douyin-api；其他平台 yt-dlp 最穩。
+    order = (fetch_via_douyin_api, fetch_via_ytdlp) if "douyin" in url else (fetch_via_ytdlp, fetch_via_douyin_api)
     for fn in order:
         try:
             sv = fn(url, dst)
@@ -185,7 +196,7 @@ def fetch_video(share_text: str, work: Path) -> SourceVideo:
             return sv
         except Exception as e:  # noqa: BLE001
             errors.append(f"{fn.__name__}: {e}")
-    hint = "（抖音需要先在 ① 分頁的「⚙️ 抖音 Cookie」貼上你的 cookie）" if "douyin" in url and not config.COOKIE_FILE.exists() else ""
+    hint = "（抖音需要先在 ① 分頁的「⚙️ 抖音 Cookie」貼上你的 cookie）" if "douyin" in url and not config.COOKIE_HEADER_FILE.exists() else ""
     raise RuntimeError("抓不到影片" + hint + "。" + " | ".join(errors))
 
 

@@ -49,7 +49,8 @@ DOUYIN_API_URL = os.environ.get("DOUYIN_API_URL", "http://localhost:8081")
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "small")        # tiny/base/small/medium；6GB 顯卡 small 很夠
 WHISPER_DEVICE = os.environ.get("WHISPER_DEVICE", "auto")        # auto | cuda | cpu
 UPLOAD_DIR = Path(os.environ.get("STUDIO_UPLOAD_DIR", BASE_DIR.parent / "uploads"))
-COOKIE_FILE = UPLOAD_DIR / "douyin_cookies.txt"   # 網頁 ① 的「抖音 Cookie」設定會存在這（Netscape 格式，給 yt-dlp 用）
+COOKIE_FILE = UPLOAD_DIR / "douyin_cookies.txt"          # Netscape 格式，給 yt-dlp
+COOKIE_HEADER_FILE = UPLOAD_DIR / "douyin_cookie_header.txt"  # 一行 header 字串，給 douyin-api 容器（它會自動重啟套用）
 
 # ---- ② 聲音克隆（CosyVoice FastAPI）與對嘴（MuseTalk API）----
 COSYVOICE_URL = os.environ.get("COSYVOICE_URL", "http://localhost:50000")

@@ -140,7 +140,7 @@ function showVideo(s,extra){res.innerHTML=`<video controls playsinline src="${s.
 // 抖音 cookie
 async function ckRefresh(){const s=await (await fetch('/api/settings/douyin_cookie')).json();$('#ckstat').textContent=s.set?`　✔ 已設定（${s.count} 筆，${s.updated}）`:'　尚未設定'}
 ckRefresh();
-$('#cksave').onclick=async()=>{const r=await fetch('/api/settings/douyin_cookie',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookie:$('#ck').value})});const j=await r.json();if(!r.ok){alert(j.error);return}$('#ck').value='';ckRefresh();alert('已儲存，現在可以貼抖音連結了')};
+$('#cksave').onclick=async()=>{const r=await fetch('/api/settings/douyin_cookie',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookie:$('#ck').value})});const j=await r.json();if(!r.ok){alert(j.error);return}$('#ck').value='';ckRefresh();alert('已儲存。抖音服務正在套用新 cookie（約 15 秒），之後再貼抖音連結')};
 // ①
 $('#f1').onsubmit=async e=>{e.preventDefault();start();
   const fd=new FormData(e.target);const body=Object.fromEntries(fd.entries());body.offline=fd.get('offline')?'1':'0';
