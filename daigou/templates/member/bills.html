@@ -1,0 +1,27 @@
+{% extends "member/_layout.html" %}
+{% from "_ui.html" import csrf_input, status, empty %}
+{% block title %}帳單｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>帳單</h1><span class="small muted">目前匯率：1 日圓 = {{ rate }} 新台幣</span></div>
+<div class="card">
+  {% if rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>#</th><th>類型</th><th>單據</th><th class="num">金額</th><th>付款期限</th><th>狀態</th><th><span class="sr-only">付款</span></th></tr></thead>
+    <tbody>{% for b in rows %}
+      <tr><td>{{ b.id }}</td><td>{{ b.kind }}</td><td class="mono small">{{ b.ref }}</td>
+        <td class="num">{{ b.amount|money(b.currency) }}{% if b.currency == 'JPY' %}<br><span class="small muted">≈ {{ jpy_to_twd(b.amount)|money }}</span>{% endif %}</td>
+        <td class="small">{{ b.due if b.status == '未付款' else b.paid }}</td><td>{{ status(b.status) }}</td>
+        <td>{% if b.status == '未付款' %}
+          <form method="post" action="{{ url_for('pay_bill', bid=b.id) }}" class="inline-form">
+            {{ csrf_input() }}
+            {% if b.currency == 'JPY' %}
+              <label class="sr-only" for="cur{{ b.id }}">付款幣別</label>
+              <select class="input" id="cur{{ b.id }}" name="currency"><option value="JPY">日圓餘額</option><option value="TWD">台幣餘額</option></select>
+            {% endif %}
+            <button class="btn btn-primary btn-sm" type="submit">付款</button>
+          </form>{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ empty('目前沒有帳單') }}{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+<nav aria-label="幫助中心">
+  <h2><a href="{{ url_for('help_index') }}" {% if request.endpoint=='help_index' %}aria-current="page"{% endif %}>幫助中心</a></h2>
+</nav>
+{% for cat, items in doc_nav.items() %}
+<nav aria-label="{{ cat }}">
+  <h2>{{ cat }}</h2>
+  <ul>{% for a in items %}<li><a href="{{ url_for('doc', slug=a.slug) }}" {% if art and art.slug == a.slug %}aria-current="page"{% endif %}>{{ a.title }}</a></li>{% endfor %}</ul>
+</nav>
+{% endfor %}

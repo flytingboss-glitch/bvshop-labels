@@ -1,0 +1,16 @@
+{% extends "member/_layout.html" %}
+{% from "_ui.html" import field, csrf_input %}
+{% block title %}個人資料｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>個人資料</h1></div>
+<div class="card form-narrow">
+  <form method="post">
+    {{ csrf_input() }}
+    {{ field('email', '電子郵件', {}, {}, value=me.email, attrs='disabled') }}
+    {{ field('name', '姓名', errors, {}, required=true, value=me.name) }}
+    {{ field('phone', '手機號碼', errors, {}, type='tel', value=me.phone) }}
+    {{ field('new_password', '新密碼', errors, {}, type='password', hint='不修改請留空', attrs='autocomplete="new-password"') }}
+    <button class="btn btn-primary" type="submit">儲存</button>
+  </form>
+</div>
+{% endblock %}

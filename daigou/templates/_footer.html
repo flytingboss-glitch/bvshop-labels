@@ -1,0 +1,24 @@
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark" aria-hidden="true">JP</span>{{ site.SITE_NAME }}</a>
+        <p class="muted">從日本採購到送貨到府，一個帳號全部搞定。</p>
+      </div>
+      {% for cat, items in doc_nav.items() %}{% if loop.index <= 3 %}
+      <nav aria-label="{{ cat }}">
+        <h2>{{ cat }}</h2>
+        <ul>{% for a in items %}<li><a href="{{ url_for('doc', slug=a.slug) }}">{{ a.title }}</a></li>{% endfor %}</ul>
+      </nav>
+      {% endif %}{% endfor %}
+      <div>
+        <h2>聯絡我們</h2>
+        <ul>
+          <li class="muted">{{ site.SUPPORT_HOURS }}</li>
+          <li><a href="mailto:{{ site.SUPPORT_EMAIL }}">{{ site.SUPPORT_EMAIL }}</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© {{ now.year }} {{ site.SITE_NAME }}</p>
+  </div>
+</footer>

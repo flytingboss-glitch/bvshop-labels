@@ -1,0 +1,56 @@
+{# Shared form and status pieces. Every page writes fields through these. #}
+{% macro flashes() %}
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}
+    <div class="flash flash-{{ cat }}" role="status">{{ msg }}</div>
+  {% endfor %}
+{% endmacro %}
+
+{% macro field(name, label, errors={}, form={}, type="text", hint="", required=false, value=None, attrs="", prefix="") %}
+  {% set err = errors.get(name) %}{% set fid = prefix ~ name %}
+  <div class="field">
+    <label for="f-{{ fid }}">{{ label }}{% if required %} <span aria-hidden="true" class="muted">*</span>{% endif %}</label>
+    {% if type == "textarea" %}
+      <textarea class="input" id="f-{{ fid }}" name="{{ name }}" {% if required %}required{% endif %}
+        {% if err %}aria-invalid="true" aria-describedby="e-{{ fid }}"{% endif %} {{ attrs|safe }}>{{ value if value is not none else form.get(name, '') }}</textarea>
+    {% else %}
+      <input class="input" id="f-{{ fid }}" name="{{ name }}" type="{{ type }}" value="{{ value if value is not none else form.get(name, '') }}"
+        {% if required %}required{% endif %} {% if err %}aria-invalid="true" aria-describedby="e-{{ fid }}"{% endif %} {{ attrs|safe }}>
+    {% endif %}
+    {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+    {% if err %}<span class="error" id="e-{{ fid }}">{{ err }}</span>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro select(name, label, options, errors={}, form={}, selected=None) %}
+  {% set err = errors.get(name) %}
+  {% set cur = selected if selected is not none else form.get(name, '') %}
+  <div class="field">
+    <label for="f-{{ name }}">{{ label }}</label>
+    <select class="input" id="f-{{ name }}" name="{{ name }}" {% if err %}aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
+      {% for o in options %}<option value="{{ o }}" {% if o == cur %}selected{% endif %}>{{ o }}</option>{% endfor %}
+    </select>
+    {% if err %}<span class="error" id="e-{{ name }}">{{ err }}</span>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro form_error(errors) %}
+  {% if errors.get('form') %}<div class="flash flash-error" role="alert">{{ errors.form }}</div>{% endif %}
+{% endmacro %}
+
+{% macro csrf_input() %}<input type="hidden" name="csrf" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro status(s) %}
+  {% set tone = {'待採購':'warn','預報中':'warn','待秤重':'warn','待付款':'danger','未付款':'danger','待確認':'warn',
+                 '已採購':'brand','已入庫':'brand','出貨中':'brand','已付款':'brand','已出貨':'brand',
+                 '已送達':'ok','已入帳':'ok','已取消':'','已退回':''}.get(s, '') %}
+  <span class="badge {% if tone %}badge-{{ tone }}{% endif %}">{{ s }}</span>
+{% endmacro %}
+
+{% macro tabs(endpoint, flow, current, all_label="全部") %}
+  <nav class="tabs" aria-label="狀態篩選">
+    {% for s in flow %}<a href="{{ url_for(endpoint, status=s) }}" {% if s == current %}aria-current="page"{% endif %}>{{ s }}</a>{% endfor %}
+    <a href="{{ url_for(endpoint, status='') }}" {% if current == '' %}aria-current="page"{% endif %}>{{ all_label }}</a>
+  </nav>
+{% endmacro %}
+
+{% macro empty(text) %}<div class="empty">{{ text }}</div>{% endmacro %}

@@ -1,0 +1,43 @@
+{% extends "admin/_layout.html" %}
+{% from "_ui.html" import field, csrf_input, empty %}
+{% block title %}公告與文章｜管理後台{% endblock %}
+{% block main %}
+<div class="page-head"><h1>公告與文章</h1></div>
+<div class="card">
+  <h2 class="card-title">新增公告</h2>
+  <form method="post">{{ csrf_input() }}<input type="hidden" name="kind" value="news">
+    {{ field('title', '標題', {}, {}, required=true) }}
+    {{ field('body', '內容（Markdown）', {}, {}, type='textarea') }}
+    <label class="check mb-4"><input type="checkbox" name="important" value="1"> 標示為重要</label>
+    <button class="btn btn-primary" type="submit">發布</button>
+  </form>
+  {% if news %}<ul class="news-list mt-6">{% for n in news %}
+    <li>{% if n.important %}<span class="badge badge-danger">重要</span>{% endif %}{{ n.title }}<time>{{ n.created[:10] }}</time>
+      <form method="post">{{ csrf_input() }}<input type="hidden" name="kind" value="news"><input type="hidden" name="id" value="{{ n.id }}"><button class="btn btn-sm" name="delete" value="1" onclick="return confirm('刪除這則公告？')">刪除</button></form></li>
+  {% endfor %}</ul>{% else %}{{ empty('還沒有公告') }}{% endif %}
+</div>
+<div class="card">
+  <h2 class="card-title">{{ '編輯文章：' ~ edit.title if edit else '新增文章' }}</h2>
+  <form method="post">{{ csrf_input() }}<input type="hidden" name="kind" value="article"><input type="hidden" name="id" value="{{ edit.id if edit else '' }}">
+    <div class="grid-2">
+      {{ field('category', '分類', {}, {}, prefix='a-', required=true, value=edit.category if edit else '', hint='同分類的文章會排在幫助中心側欄同一組') }}
+      {{ field('title', '標題', {}, {}, prefix='a-', required=true, value=edit.title if edit else '') }}
+      {% if not edit %}{{ field('slug', '網址代稱', {}, {}, prefix='a-', hint='英文小寫與連字號，例如 shipping-sea；留空自動產生') }}{% endif %}
+      {{ field('sort', '排序', {}, {}, prefix='a-', type='number', value=edit.sort if edit else 0) }}
+    </div>
+    {{ field('body', '內容（Markdown）', {}, {}, prefix='a-', type='textarea', value=edit.body if edit else '', attrs='rows="16"') }}
+    <label class="check mb-4"><input type="checkbox" name="is_faq" value="1" {% if edit and edit.is_faq %}checked{% endif %}> 列為常見問題</label>
+    <button class="btn btn-primary" type="submit">儲存</button>
+    {% if edit %}<a class="btn" href="{{ url_for('admin_content') }}">取消</a>{% endif %}
+  </form>
+</div>
+<div class="card">
+  <h2 class="card-title">所有文章</h2>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>分類</th><th>標題</th><th>網址</th><th><span class="sr-only">動作</span></th></tr></thead>
+    <tbody>{% for a in articles %}<tr><td>{{ a.category }}{% if a.is_faq %} <span class="badge">FAQ</span>{% endif %}</td><td>{{ a.title }}</td>
+      <td class="mono small"><a href="{{ url_for('doc', slug=a.slug) }}">/help/{{ a.slug }}</a></td>
+      <td><a class="btn btn-sm" href="{{ url_for('admin_content', edit=a.id) }}">編輯</a></td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

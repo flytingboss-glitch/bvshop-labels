@@ -1,0 +1,28 @@
+{% extends "member/_layout.html" %}
+{% block title %}會員中心｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>總覽</h1></div>
+<div class="stats">
+  <a class="stat" href="{{ url_for('member_purchases') }}"><strong>{{ stats.purchases }}</strong><span>待採購</span></a>
+  <a class="stat" href="{{ url_for('member_shipments') }}"><strong>{{ stats.in_stock }}</strong><span>已入庫，可出貨</span></a>
+  <a class="stat" href="{{ url_for('member_shipments') }}"><strong>{{ stats.shipping }}</strong><span>出貨處理中</span></a>
+  <a class="stat" href="{{ url_for('member_bills') }}"><strong>{{ stats.unpaid }}</strong><span>未付款帳單</span></a>
+</div>
+<section class="address-box" aria-labelledby="addr-title">
+  <h2 class="card-title" id="addr-title">你的專屬日本倉庫地址</h2>
+  <dl>
+    <dt>收件人</dt><dd>{{ me.name }} <span class="mono">{{ me.member_code }}</span></dd>
+    <dt>地址</dt><dd>{{ address }}</dd>
+    <dt>電話</dt><dd>{{ wphone }}</dd>
+  </dl>
+  <p class="small muted mt-4">在日本網站結帳時，收件人姓名後務必加上會員編號 <span class="mono">{{ me.member_code }}</span>，下單後到「<a href="{{ url_for('member_parcels') }}">我的包裹</a>」預報單號。</p>
+</section>
+<div class="card mt-6">
+  <h2 class="card-title">接下來可以做什麼</h2>
+  <ol class="small">
+    <li><a href="{{ url_for('member_purchases') }}">提交代採購單</a>：貼上商品連結，我們幫你買。</li>
+    <li><a href="{{ url_for('member_parcels') }}">預報包裹</a>：自己在日本網站下單，寄到上面的地址。</li>
+    <li><a href="{{ url_for('member_wallet') }}">儲值</a>：先儲值，帳單出來就能直接扣款。</li>
+  </ol>
+</div>
+{% endblock %}

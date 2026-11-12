@@ -1,0 +1,19 @@
+{% extends "admin/_layout.html" %}
+{% from "_ui.html" import field, form_error, csrf_input %}
+{% block title %}系統設定｜管理後台{% endblock %}
+{% block main %}
+<div class="page-head"><h1>系統設定</h1></div>
+{{ form_error(errors) }}
+<div class="card">
+  <form method="post">{{ csrf_input() }}
+    {{ field('rate_jpy_twd', '結算匯率（1 日圓 = ? 新台幣）', errors, values, required=true, hint='商品帳單以台幣支付時使用') }}
+    {{ field('warehouse_address', '日本倉庫地址', errors, values, required=true) }}
+    {{ field('warehouse_phone', '倉庫電話', errors, values) }}
+    {{ field('bank_twd', '台幣匯款帳號', errors, values) }}
+    {{ field('bank_jpy', '日圓匯款帳號', errors, values) }}
+    {{ field('shipping_rules', '運費規則（JSON）', errors, values, type='textarea', attrs='rows="16" spellcheck="false" style="font-family:var(--font-mono)"',
+        hint='table：[公斤上限, 價格] 逐級查表；超過最後一級後，per_kg：[公斤上限, 每公斤價格] 乘以整數公斤。') }}
+    <button class="btn btn-primary" type="submit">儲存</button>
+  </form>
+</div>
+{% endblock %}

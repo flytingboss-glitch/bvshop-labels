@@ -1,0 +1,35 @@
+{% extends "admin/_layout.html" %}
+{% from "_ui.html" import csrf_input, status, tabs, empty %}
+{% block title %}出貨單｜管理後台{% endblock %}
+{% block main %}
+<div class="page-head"><h1>出貨單</h1></div>
+{{ tabs('admin_shipments', flow, status) }}
+<div class="card">
+{% if rows %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>#</th><th>會員</th><th>收件</th><th class="num">件數</th><th class="num">重量 / 運費</th><th>狀態</th><th>處理</th></tr></thead>
+  <tbody>{% for s in rows %}
+  <tr><td>{{ s.id }}</td><td>{{ s.name }}<br><span class="mono small">{{ s.member_code }}</span></td>
+    <td>{{ s.recipient }}・{{ s.phone }}<br><span class="small muted">{{ s.address }}</span>{% if s.note %}<br><span class="small">備註：{{ s.note }}</span>{% endif %}</td>
+    <td class="num">{{ s.n }}</td>
+    <td class="num">{{ '%.2f kg'|format(s.weight) if s.weight else '—' }}<br>{{ s.fee_twd|money if s.fee_twd else '' }}</td>
+    <td>{{ status(s.status) }}</td>
+    <td>
+      {% if s.status == '待秤重' %}
+      <form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="id" value="{{ s.id }}">
+        <label class="sr-only" for="w{{ s.id }}">打包後重量</label><input class="input w-xs" id="w{{ s.id }}" name="weight" type="number" step="0.01" value="{{ s.weight or '' }}" placeholder="重量 kg" required>
+        <label class="sr-only" for="x{{ s.id }}">加值服務費</label><input class="input w-xs" id="x{{ s.id }}" name="extra" type="number" placeholder="加值費">
+        <button class="btn btn-primary btn-sm" name="action" value="weigh">秤重・出帳</button></form>
+      {% elif s.status == '已付款' %}
+      <form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="id" value="{{ s.id }}">
+        <label class="sr-only" for="t{{ s.id }}">台灣物流單號</label><input class="input" id="t{{ s.id }}" name="tracking" placeholder="台灣單號" required>
+        <button class="btn btn-primary btn-sm" name="action" value="ship">已出貨</button></form>
+      {% elif s.status == '已出貨' %}
+      <form method="post">{{ csrf_input() }}<input type="hidden" name="id" value="{{ s.id }}"><button class="btn btn-sm" name="action" value="deliver">已送達</button></form>
+      {% else %}<span class="mono small">{{ s.tracking }}</span>{% endif %}
+    </td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% else %}{{ empty('沒有這個狀態的出貨單') }}{% endif %}
+</div>
+{% endblock %}

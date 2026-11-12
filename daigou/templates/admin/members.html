@@ -1,0 +1,21 @@
+{% extends "admin/_layout.html" %}
+{% from "_ui.html" import csrf_input, empty %}
+{% block title %}會員｜管理後台{% endblock %}
+{% block main %}
+<div class="page-head"><h1>會員</h1></div>
+<div class="card">
+{% if rows %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>編號</th><th>姓名 / 信箱</th><th class="num">台幣</th><th class="num">日圓</th><th>信用額度</th><th>註冊</th></tr></thead>
+  <tbody>{% for u in rows %}
+  <tr><td class="mono">{{ u.member_code }}</td><td>{{ u.name }}<br><span class="small muted">{{ u.email }}・{{ u.phone }}</span></td>
+    <td class="num">{{ u.bal_twd|money }}</td><td class="num">{{ u.bal_jpy|money('JPY') }}</td>
+    <td><form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="id" value="{{ u.id }}">
+      <label class="sr-only" for="c{{ u.id }}">信用額度</label><input class="input w-xs" id="c{{ u.id }}" name="credit_twd" type="number" value="{{ u.credit_twd }}">
+      <button class="btn btn-sm" type="submit">更新</button></form></td>
+    <td class="small muted">{{ u.created[:10] }}</td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% else %}{{ empty('還沒有會員') }}{% endif %}
+</div>
+{% endblock %}

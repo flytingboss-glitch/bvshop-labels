@@ -1,0 +1,41 @@
+{% extends "member/_layout.html" %}
+{% from "_ui.html" import field, select, form_error, csrf_input, status, empty %}
+{% block title %}錢包與儲值｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>錢包與儲值</h1></div>
+<div class="stats">
+  <div class="stat"><strong>{{ me.bal_twd|money }}</strong><span>台幣餘額</span></div>
+  <div class="stat"><strong>{{ me.bal_jpy|money('JPY') }}</strong><span>日圓餘額</span></div>
+  <div class="stat"><strong>{{ unpaid|money }}</strong><span>未付款（約）</span></div>
+  <div class="stat"><strong>{{ me.credit_twd|money }}</strong><span>信用額度</span></div>
+</div>
+<div class="card">
+  <h2 class="card-title">匯款帳號</h2>
+  <dl class="small"><dt class="muted">新台幣</dt><dd>{{ bank_twd }}</dd><dt class="muted">日圓</dt><dd>{{ bank_jpy }}</dd></dl>
+  <h3>匯款後提交儲值申請</h3>
+  {{ form_error(errors) }}
+  <form method="post">
+    {{ csrf_input() }}
+    <div class="grid-2">
+      {{ select('currency', '幣別', ['TWD','JPY'], errors, form) }}
+      {{ field('amount', '匯款金額', errors, form, type='number', required=true, attrs='min="1" step="1"') }}
+      {{ field('last5', '匯款帳號末五碼', errors, form, required=true, attrs='inputmode="numeric" maxlength="5" pattern="[0-9]{5}"') }}
+    </div>
+    <button class="btn btn-primary" type="submit">提交儲值申請</button>
+  </form>
+</div>
+<div class="card">
+  <h2 class="card-title">儲值紀錄</h2>
+  {% if topups %}<div class="table-wrap"><table class="table">
+    <thead><tr><th>#</th><th class="num">金額</th><th>末五碼</th><th>狀態</th><th>日期</th></tr></thead>
+    <tbody>{% for t in topups %}<tr><td>{{ t.id }}</td><td class="num">{{ t.amount|money(t.currency) }}</td><td class="mono">{{ t.account_last5 }}</td><td>{{ status(t.status) }}</td><td class="small muted">{{ t.created }}</td></tr>{% endfor %}</tbody>
+  </table></div>{% else %}{{ empty('還沒有儲值紀錄') }}{% endif %}
+</div>
+<div class="card">
+  <h2 class="card-title">資金明細</h2>
+  {% if ledger %}<div class="table-wrap"><table class="table">
+    <thead><tr><th>時間</th><th>說明</th><th class="num">金額</th></tr></thead>
+    <tbody>{% for l in ledger %}<tr><td class="small muted">{{ l.created }}</td><td>{{ l.memo }}</td><td class="num">{{ l.amount|money(l.currency) }}</td></tr>{% endfor %}</tbody>
+  </table></div>{% else %}{{ empty('還沒有資金異動') }}{% endif %}
+</div>
+{% endblock %}

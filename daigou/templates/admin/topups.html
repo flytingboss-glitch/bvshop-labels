@@ -1,0 +1,19 @@
+{% extends "admin/_layout.html" %}
+{% from "_ui.html" import csrf_input, status, empty %}
+{% block title %}儲值確認｜管理後台{% endblock %}
+{% block main %}
+<div class="page-head"><h1>儲值確認</h1></div>
+<div class="card">
+{% if rows %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>#</th><th>會員</th><th class="num">金額</th><th>末五碼</th><th>時間</th><th>狀態</th><th>處理</th></tr></thead>
+  <tbody>{% for t in rows %}
+  <tr><td>{{ t.id }}</td><td>{{ t.name }}<br><span class="mono small">{{ t.member_code }}</span></td><td class="num">{{ t.amount|money(t.currency) }}</td>
+    <td class="mono">{{ t.account_last5 }}</td><td class="small muted">{{ t.created }}</td><td>{{ status(t.status) }}</td>
+    <td>{% if t.status == '待確認' %}<form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="id" value="{{ t.id }}">
+      <button class="btn btn-primary btn-sm" name="action" value="approve">確認入帳</button><button class="btn btn-sm" name="action" value="reject">退回</button></form>{% endif %}</td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% else %}{{ empty('沒有儲值申請') }}{% endif %}
+</div>
+{% endblock %}

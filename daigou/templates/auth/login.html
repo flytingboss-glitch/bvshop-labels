@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_ui.html" import flashes, field, form_error, csrf_input %}
+{% block title %}登入｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="container"><div class="auth card">
+  <h1 class="card-title">登入</h1>
+  {{ flashes() }}
+  {{ form_error(errors) }}
+  <form method="post">
+    {{ csrf_input() }}
+    {{ field('email', '電子郵件', errors, {}, type='email', required=true, value=email, attrs='autocomplete="email"') }}
+    {{ field('password', '密碼', errors, {}, type='password', required=true, attrs='autocomplete="current-password"') }}
+    <button class="btn btn-primary btn-block" type="submit">登入</button>
+  </form>
+  <p class="small muted mt-4">還沒有帳號？<a href="{{ url_for('register_view') }}">免費註冊</a></p>
+</div></div>
+{% endblock %}

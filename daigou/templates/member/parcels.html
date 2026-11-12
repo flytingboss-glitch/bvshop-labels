@@ -1,0 +1,33 @@
+{% extends "member/_layout.html" %}
+{% from "_ui.html" import field, select, form_error, csrf_input, status, empty %}
+{% block title %}我的包裹｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>我的包裹</h1><a class="btn btn-primary" href="{{ url_for('member_shipments') }}">申請出貨</a></div>
+<div class="card">
+  <h2 class="card-title">預報包裹</h2>
+  <p class="small muted">自己在日本網站下單寄到倉庫時，先在這裡登記單號，入庫會更快。</p>
+  {{ form_error(errors) }}
+  <form method="post">
+    {{ csrf_input() }}
+    <div class="grid-2">
+      {{ select('carrier', '日本物流', ['ヤマト運輸','佐川急便','日本郵便','其他'], errors, form) }}
+      {{ field('tracking', '物流單號', errors, form, required=true) }}
+      {{ field('content', '內容物', errors, form, required=true, hint='例如：衣服 2 件、零食 5 包') }}
+      {{ field('value_jpy', '申報價值（日圓）', errors, form, type='number', attrs='min="0" step="1"') }}
+    </div>
+    <button class="btn btn-primary" type="submit">預報</button>
+  </form>
+</div>
+<div class="card">
+  <h2 class="card-title">包裹列表</h2>
+  {% if rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>#</th><th>物流 / 單號</th><th>內容物</th><th class="num">重量</th><th>狀態</th><th>入庫時間</th></tr></thead>
+    <tbody>{% for p in rows %}
+      <tr><td>{{ p.id }}</td><td>{{ p.carrier }}<br><span class="mono small">{{ p.tracking }}</span></td><td>{{ p.content }}</td>
+        <td class="num">{{ '%.2f kg'|format(p.weight) if p.weight else '—' }}</td><td>{{ status(p.status) }}</td><td class="small muted">{{ p.received or '—' }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ empty('還沒有包裹') }}{% endif %}
+</div>
+{% endblock %}

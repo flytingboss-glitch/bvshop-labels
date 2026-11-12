@@ -1,0 +1,32 @@
+<form class="calc card" id="calc-form" novalidate>
+  <div class="field">
+    <label for="calc-weight">發貨重量</label>
+    <div class="input-group">
+      <input class="input" id="calc-weight" name="weight" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="例如 3.5" required aria-describedby="calc-hint">
+      <span class="addon">公斤</span>
+    </div>
+    <span class="hint" id="calc-hint">不足 1 公斤以 1 公斤計。不含加值服務費與保險費；商業會員以約定運費為準。</span>
+  </div>
+  <button class="btn btn-primary btn-block" type="submit">試算</button>
+  <div class="calc-result" id="calc-result" aria-live="polite"></div>
+</form>
+<script>
+document.getElementById('calc-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const out = document.getElementById('calc-result');
+  const w = document.getElementById('calc-weight').value;
+  out.textContent = '計算中…';
+  try {
+    const r = await fetch('{{ url_for("api_fee") }}?weight=' + encodeURIComponent(w));
+    const d = await r.json();
+    if (!d.ok) { out.innerHTML = ''; const p = document.createElement('div'); p.className = 'flash flash-error'; p.textContent = d.error; out.appendChild(p); return; }
+    out.innerHTML = `<dl>
+      <dt>配送路線</dt><dd>台灣・${d.line}</dd>
+      <dt>計費重量</dt><dd>${Math.max(1, Math.ceil(d.weight))} 公斤（實重 ${d.weight} 公斤）</dd>
+      <dt>國際運費</dt><dd class="calc-total">NT$ ${d.fee.toLocaleString()}</dd>
+      <dt>手續費</dt><dd>免收</dd>
+      <dt>時效</dt><dd>${d.lead_time}</dd>
+      <dt>包稅</dt><dd>是</dd></dl>`;
+  } catch (err) { out.innerHTML = '<div class="flash flash-error">暫時無法試算，請稍後再試</div>'; }
+});
+</script>

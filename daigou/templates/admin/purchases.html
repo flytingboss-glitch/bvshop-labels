@@ -1,0 +1,35 @@
+{% extends "admin/_layout.html" %}
+{% from "_ui.html" import csrf_input, status, tabs, empty %}
+{% block title %}代採購單｜管理後台{% endblock %}
+{% block main %}
+<div class="page-head"><h1>代採購單</h1></div>
+{{ tabs('admin_purchases', flow, status) }}
+<div class="card">
+{% if rows %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>#</th><th>會員</th><th>商品</th><th class="num">單價×數量</th><th>狀態</th><th>處理</th></tr></thead>
+  <tbody>{% for p in rows %}
+  <tr><td>{{ p.id }}</td><td>{{ p.name }}<br><span class="mono small">{{ p.member_code }}</span></td>
+    <td><a href="{{ p.url }}" target="_blank" rel="noopener noreferrer">{{ p.title or p.url[:40] }}</a><br><span class="small muted">{{ p.mode }}{% if p.spec %}・{{ p.spec }}{% endif %}{% if p.note %}・{{ p.note }}{% endif %}</span></td>
+    <td class="num">{{ p.price_jpy|money('JPY') }} × {{ p.qty }}</td><td>{{ status(p.status) }}</td>
+    <td>
+      {% if p.status == '待採購' %}
+      <form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="id" value="{{ p.id }}">
+        <label class="sr-only" for="pr{{ p.id }}">實際單價</label><input class="input w-xs" id="pr{{ p.id }}" name="price_jpy" type="number" value="{{ p.price_jpy }}" title="實際單價（日圓）">
+        <label class="sr-only" for="js{{ p.id }}">日本運費</label><input class="input w-xs" id="js{{ p.id }}" name="jp_ship_jpy" type="number" placeholder="日本運費">
+        <label class="sr-only" for="an{{ p.id }}">備註</label><input class="input w-sm" id="an{{ p.id }}" name="admin_note" placeholder="給會員的備註">
+        <button class="btn btn-primary btn-sm" name="action" value="bought">已採購・出帳</button>
+        <button class="btn btn-sm" name="action" value="cancel">取消</button>
+      </form>
+      {% elif p.status == '已採購' %}
+      <form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="id" value="{{ p.id }}">
+        <label class="sr-only" for="w{{ p.id }}">重量</label><input class="input w-xs" id="w{{ p.id }}" name="weight" type="number" step="0.01" placeholder="重量 kg">
+        <button class="btn btn-primary btn-sm" name="action" value="arrived">到倉入庫</button>
+      </form>
+      {% else %}<span class="small muted">{{ p.admin_note }}</span>{% endif %}
+    </td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% else %}{{ empty('沒有這個狀態的採購單') }}{% endif %}
+</div>
+{% endblock %}

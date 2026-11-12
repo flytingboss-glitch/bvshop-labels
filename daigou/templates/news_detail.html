@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }}｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<section class="section"><div class="container doc">
+  <p><a href="{{ url_for('news_list') }}">← 公告資訊</a></p>
+  <h1>{{ item.title }}</h1>
+  <p class="meta">{{ item.created }}</p>
+  {{ item.body|markdown }}
+</div></section>
+{% endblock %}

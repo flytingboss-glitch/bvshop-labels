@@ -1,0 +1,14 @@
+{% extends "_sidebar_layout.html" %}
+{% block title %}{{ art.title }}｜{{ site.SITE_NAME }}{% endblock %}
+{% block sidebar %}{% include "docs/_nav.html" %}{% endblock %}
+{% block main %}
+<article class="doc">
+  <h1>{{ art.title }}</h1>
+  <p class="meta">最後更新：{{ art.updated }}</p>
+  {{ art.body|markdown }}
+  <nav class="pager" aria-label="上一頁與下一頁">
+    {% if prev %}<a href="{{ url_for('doc', slug=prev.slug) }}"><span>上一頁</span>{{ prev.title }}</a>{% endif %}
+    {% if nxt %}<a class="next" href="{{ url_for('doc', slug=nxt.slug) }}"><span>下一頁</span>{{ nxt.title }}</a>{% endif %}
+  </nav>
+</article>
+{% endblock %}

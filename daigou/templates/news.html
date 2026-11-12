@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_ui.html" import empty %}
+{% block title %}公告資訊｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<section class="section"><div class="container narrow">
+  <h1 class="section-title">公告資訊</h1>
+  {% if items %}<ul class="news-list">{% for n in items %}<li>{% if n.important %}<span class="badge badge-danger">重要</span>{% endif %}<a href="{{ url_for('news_detail', nid=n.id) }}">{{ n.title }}</a><time datetime="{{ n.created }}">{{ n.created[:10] }}</time></li>{% endfor %}</ul>
+  {% else %}{{ empty('目前沒有公告') }}{% endif %}
+</div></section>
+{% endblock %}

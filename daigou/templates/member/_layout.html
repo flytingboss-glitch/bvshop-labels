@@ -1,0 +1,17 @@
+{% extends "_sidebar_layout.html" %}
+{% block sidebar %}
+{% set ep = request.endpoint %}
+<nav aria-label="會員中心">
+  <h2>會員中心</h2>
+  <p class="small muted">{{ me.name }}・<span class="mono">{{ me.member_code }}</span></p>
+  <ul>
+    {% for e, label in [('member_home','總覽與倉庫地址'),('member_purchases','代採購'),('member_parcels','我的包裹'),('member_shipments','申請出貨'),('member_bills','帳單'),('member_wallet','錢包與儲值'),('member_profile','個人資料')] %}
+    <li><a href="{{ url_for(e) }}" {% if ep == e %}aria-current="page"{% endif %}>{{ label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+<nav aria-label="餘額">
+  <h2>餘額</h2>
+  <p class="small">{{ me.bal_twd|money }}<br>{{ me.bal_jpy|money('JPY') }}</p>
+</nav>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "member/_layout.html" %}
+{% from "_ui.html" import field, form_error, csrf_input, status, empty %}
+{% block title %}申請出貨｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>申請出貨</h1><a href="{{ url_for('calculator') }}" class="small">運費試算</a></div>
+<div class="card">
+  <h2 class="card-title">選擇要寄回台灣的包裹</h2>
+  {{ form_error(errors) }}
+  {% if stock %}
+  <form method="post">
+    {{ csrf_input() }}
+    <fieldset class="check-group" {% if errors.get('parcel') %}aria-invalid="true" aria-describedby="e-parcel"{% endif %}>
+      <legend class="sr-only">已入庫包裹</legend>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th><span class="sr-only">選擇</span></th><th>#</th><th>內容物</th><th class="num">重量</th></tr></thead>
+        <tbody>{% for p in stock %}
+          <tr><td><input type="checkbox" name="parcel" value="{{ p.id }}" id="p{{ p.id }}" {% if errors.get('parcel') %}aria-describedby="e-parcel"{% endif %} {% if form.getlist is defined and (p.id|string) in form.getlist('parcel') %}checked{% endif %}></td>
+            <td><label for="p{{ p.id }}">{{ p.id }}</label></td><td>{{ p.content }}</td><td class="num">{{ '%.2f kg'|format(p.weight) if p.weight else '—' }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      {% if errors.get('parcel') %}<div class="field"><span class="error" id="e-parcel">{{ errors.parcel }}</span></div>{% endif %}
+    </fieldset>
+    <div class="grid-2">
+      {{ field('recipient', '收件人（與 EZ WAY 實名認證相同）', errors, form, required=true) }}
+      {{ field('phone', '收件人手機', errors, form, type='tel', required=true) }}
+    </div>
+    {{ field('address', '台灣收件地址', errors, form, required=true) }}
+    {{ field('note', '加值服務 / 備註', errors, form, type='textarea', hint='例如：加固包裝、防水氣泡膜、拆除外盒') }}
+    <p class="small muted">合併打包後秤重，依 {{ rules.line }} 計費，產生運費帳單後 48 小時內付款。</p>
+    <button class="btn btn-primary" type="submit">提交出貨</button>
+  </form>
+  {% else %}{{ empty('目前沒有已入庫的包裹') }}{% endif %}
+</div>
+<div class="card">
+  <h2 class="card-title">出貨紀錄</h2>
+  {% if rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>#</th><th>收件人</th><th class="num">重量</th><th class="num">運費</th><th>台灣單號</th><th>狀態</th><th>日期</th></tr></thead>
+    <tbody>{% for s in rows %}
+      <tr><td>{{ s.id }}</td><td>{{ s.recipient }}<br><span class="small muted">{{ s.address }}</span></td>
+        <td class="num">{{ '%.2f kg'|format(s.weight) if s.weight else '—' }}</td><td class="num">{{ s.fee_twd|money if s.fee_twd else '—' }}</td>
+        <td class="mono small">{{ s.tracking or '—' }}</td><td>{{ status(s.status) }}</td><td class="small muted">{{ s.created[:10] }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ empty('還沒有出貨紀錄') }}{% endif %}
+</div>
+{% endblock %}

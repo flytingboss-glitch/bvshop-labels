@@ -1,0 +1,12 @@
+{% extends "_sidebar_layout.html" %}
+{% block sidebar %}
+{% set ep = request.endpoint %}
+<nav aria-label="管理後台">
+  <h2>管理後台</h2>
+  <ul>
+    {% for e, label in [('admin_home','總覽'),('admin_purchases','代採購單'),('admin_parcels','包裹入庫'),('admin_shipments','出貨單'),('admin_topups','儲值確認'),('admin_members','會員'),('admin_content','公告與文章'),('admin_settings','系統設定')] %}
+    <li><a href="{{ url_for(e) }}" {% if ep == e %}aria-current="page"{% endif %}>{{ label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endblock %}

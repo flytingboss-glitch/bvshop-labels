@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}運費試算｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<section class="section"><div class="container">
+  <h1 class="section-title">運費試算</h1>
+  {% include "_calculator.html" %}
+  <div class="calc card">
+    <h2 class="card-title">{{ rules.line }} 價目表</h2>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>計費重量</th><th class="num">運費（新台幣）</th></tr></thead>
+      <tbody>
+        {% for kg, price in rules.table %}<tr><td>{{ kg }} 公斤以內</td><td class="num">{{ price|money }}</td></tr>{% endfor %}
+        {% set ns = namespace(prev=rules.table[-1][0]) %}
+        {% for limit, per in rules.per_kg %}<tr><td>{{ ns.prev + 1 }}{% if limit < 9999 %} – {{ limit }}{% else %} 以上{% endif %} 公斤</td><td class="num">每公斤 {{ per|money }}</td></tr>{% set ns.prev = limit %}{% endfor %}
+      </tbody>
+    </table></div>
+    <p class="small muted">單件上限 {{ rules.max_kg }} 公斤。時效 {{ rules.lead_time }}。</p>
+  </div>
+</div></section>
+{% endblock %}

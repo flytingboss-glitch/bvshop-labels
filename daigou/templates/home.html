@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_ui.html" import flashes, empty %}
+{% block main %}
+<section class="hero">
+  <div class="container">
+    <div>
+      {{ flashes() }}
+      <p class="hero-name">{{ site.SITE_NAME }}</p>
+      <h1 class="hero-title">日本代購・集運・批發</h1>
+      <p class="hero-tagline">{{ site.SITE_TAGLINE }}｜免代購手續費、包稅空運回台</p>
+      <div class="hero-actions">
+        {% if me %}<a class="btn btn-primary" href="{{ url_for('admin_home' if me.is_admin else 'member_home') }}">進入{{ '管理後台' if me.is_admin else '會員中心' }} →</a>
+        {% else %}<a class="btn btn-primary" href="{{ url_for('register_view') }}">免費註冊 →</a>{% endif %}
+        <a class="btn" href="{{ url_for('doc', slug='fees') }}">收費說明</a>
+        <a class="btn" href="{{ url_for('help_index') }}">幫助中心</a>
+        <a class="btn" href="{{ url_for('calculator') }}">運費試算</a>
+      </div>
+    </div>
+    <ol class="flow" aria-label="服務流程">
+      <li><strong>採購或寄送</strong>貼商品連結代買，或自己寄到專屬倉庫</li>
+      <li><strong>倉庫入庫</strong>秤重拍照，會員中心即時看到</li>
+      <li><strong>合併出貨</strong>勾選包裹、填收件資料</li>
+      <li><strong>空運到府</strong>航班日 + 2 日，包稅送達</li>
+    </ol>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">公告資訊</h2>
+    {% if news %}
+    <ul class="news-list">
+      {% for n in news %}
+      <li>{% if n.important %}<span class="badge badge-danger">重要</span>{% endif %}
+        <a href="{{ url_for('news_detail', nid=n.id) }}">{{ n.title }}</a>
+        <time datetime="{{ n.created }}">{{ n.created[:10] }}</time></li>
+      {% endfor %}
+    </ul>
+    <p class="center mt-4"><a class="btn btn-outline" href="{{ url_for('news_list') }}">查看更多</a></p>
+    {% else %}{{ empty('目前沒有公告') }}{% endif %}
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <h2 class="section-title">為什麼選擇我們</h2>
+    <div class="features">
+      {% for icon, title, sub, em, body in [
+        ('💰','價格透明','0 代購手續費・0 材積費・30 天免倉儲費','空運 NT$ ' ~ rules.table[0][1] ~ ' / 公斤起','國際運費包稅，不用再算關稅。'),
+        ('✈️','到貨快速','日本包稅直送台灣','航班日 + 2 日','下單、入庫、出貨，每一步都看得到。'),
+        ('🏪','貨源直連','日本批發店與品牌官方店','預購目錄定期更新','熱門新品搶先下單。'),
+        ('👍','新手友善','台日兩地客服','零經驗也能開始','金流、物流、貨源一次搞定。'),
+        ('📦','品類齊全','雜貨、藥妝、食品、動漫周邊','現貨＋預購','禁運品以外的商品都能寄。'),
+        ('💴','雙幣付款','新台幣・日圓都能儲值付款','匯率定期更新','用最划算的幣別付款。'),
+      ] %}
+      <article class="feature">
+        <div class="feature-icon" aria-hidden="true">{{ icon }}</div>
+        <h3>{{ title }}</h3>
+        <p>{{ sub }}</p>
+        <p class="em">{{ em }}</p>
+        <p>{{ body }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="calc">
+  <div class="container">
+    <h2 class="section-title">運費試算</h2>
+    {% include "_calculator.html" %}
+  </div>
+</section>
+
+{% if faqs %}
+<section class="section section-alt">
+  <div class="container narrow">
+    <h2 class="section-title">常見問題</h2>
+    {% for f in faqs %}<details class="faq"><summary>{{ f.title }}</summary>{{ f.body|markdown }}</details>{% endfor %}
+    <p class="center mt-6"><a href="{{ url_for('help_index') }}">到幫助中心看更多 →</a></p>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

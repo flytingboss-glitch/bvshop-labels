@@ -1,0 +1,37 @@
+{% extends "member/_layout.html" %}
+{% from "_ui.html" import field, select, form_error, csrf_input, status, empty %}
+{% block title %}代採購｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>代採購</h1><a href="{{ url_for('doc', slug='fees') }}" class="small">代採購怎麼收費？</a></div>
+<div class="card">
+  <h2 class="card-title">新增採購單</h2>
+  {{ form_error(errors) }}
+  <form method="post">
+    {{ csrf_input() }}
+    {{ field('url', '商品網址', errors, form, type='url', required=true, hint='日本網站的商品頁連結') }}
+    <div class="grid-2">
+      {{ field('title', '商品名稱', errors, form) }}
+      {{ field('spec', '規格（顏色、尺寸）', errors, form) }}
+      {{ field('price_jpy', '單價（日圓，含稅）', errors, form, type='number', required=true, attrs='min="0" step="1"') }}
+      {{ field('qty', '數量', errors, form, type='number', required=true, value=form.get('qty', 1), attrs='min="1" step="1"') }}
+    </div>
+    {{ select('mode', '採購方式', ['網路採購','現場採購'], errors, form) }}
+    {{ field('note', '備註', errors, form, type='textarea', hint='指定價格上限、可接受的替代規格等') }}
+    <button class="btn btn-primary" type="submit">提交採購單</button>
+  </form>
+</div>
+<div class="card">
+  <h2 class="card-title">我的採購單</h2>
+  {% if rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>#</th><th>商品</th><th class="num">單價</th><th class="num">數量</th><th>方式</th><th>狀態</th><th>日期</th></tr></thead>
+    <tbody>{% for p in rows %}
+      <tr><td>{{ p.id }}</td>
+        <td><a href="{{ p.url }}" target="_blank" rel="noopener noreferrer">{{ p.title or '商品連結' }}</a>{% if p.spec %}<br><span class="muted">{{ p.spec }}</span>{% endif %}{% if p.admin_note %}<br><span class="small muted">買手：{{ p.admin_note }}</span>{% endif %}</td>
+        <td class="num">{{ p.price_jpy|money('JPY') }}</td><td class="num">{{ p.qty }}</td><td>{{ p.mode }}</td>
+        <td>{{ status(p.status) }}</td><td class="small muted">{{ p.created[:10] }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ empty('還沒有採購單') }}{% endif %}
+</div>
+{% endblock %}

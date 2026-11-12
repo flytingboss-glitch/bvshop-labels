@@ -1,0 +1,11 @@
+{% extends "_sidebar_layout.html" %}
+{% block title %}幫助中心｜{{ site.SITE_NAME }}{% endblock %}
+{% block sidebar %}{% set art = none %}{% include "docs/_nav.html" %}{% endblock %}
+{% block main %}
+<div class="doc">
+  <h1>幫助中心</h1>
+  <p class="meta">第一次使用？先看 <a href="{{ url_for('doc', slug='how-it-works') }}">使用說明</a>。找不到答案請寫信到 <a href="mailto:{{ site.SUPPORT_EMAIL }}">{{ site.SUPPORT_EMAIL }}</a>。</p>
+  <h2>常見問題</h2>
+  {% for f in faqs %}<details class="faq"><summary>{{ f.title }}</summary>{{ f.body|markdown }}</details>{% endfor %}
+</div>
+{% endblock %}

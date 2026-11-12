@@ -1,0 +1,13 @@
+{% extends "admin/_layout.html" %}
+{% block title %}管理後台｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="page-head"><h1>今天要處理的</h1></div>
+<div class="stats">
+  <a class="stat" href="{{ url_for('admin_purchases', status='待採購') }}"><strong>{{ stats.purchases }}</strong><span>待採購</span></a>
+  <a class="stat" href="{{ url_for('admin_parcels', status='預報中') }}"><strong>{{ stats.parcels }}</strong><span>預報中包裹</span></a>
+  <a class="stat" href="{{ url_for('admin_shipments', status='待秤重') }}"><strong>{{ stats.weigh }}</strong><span>待秤重出貨</span></a>
+  <a class="stat" href="{{ url_for('admin_shipments', status='已付款') }}"><strong>{{ stats.ship }}</strong><span>已付款待出貨</span></a>
+  <a class="stat" href="{{ url_for('admin_topups') }}"><strong>{{ stats.topups }}</strong><span>待確認儲值</span></a>
+  <a class="stat" href="{{ url_for('admin_members') }}"><strong>{{ stats.members }}</strong><span>會員</span></a>
+</div>
+{% endblock %}

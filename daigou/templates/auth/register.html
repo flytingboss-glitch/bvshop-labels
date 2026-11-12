@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_ui.html" import field, csrf_input %}
+{% block title %}註冊｜{{ site.SITE_NAME }}{% endblock %}
+{% block main %}
+<div class="container"><div class="auth card">
+  <h1 class="card-title">免費註冊</h1>
+  <p class="small muted">註冊後立即取得專屬日本倉庫地址與會員編號。</p>
+  <form method="post">
+    {{ csrf_input() }}
+    {{ field('email', '電子郵件', errors, form, type='email', required=true, attrs='autocomplete="email"') }}
+    {{ field('name', '姓名', errors, form, required=true, hint='請填寫與身分證相同的姓名，報關實名認證需要', attrs='autocomplete="name"') }}
+    {{ field('phone', '手機號碼', errors, form, type='tel', attrs='autocomplete="tel"') }}
+    {{ field('password', '密碼', errors, {}, type='password', required=true, hint='至少 8 碼', attrs='autocomplete="new-password" minlength="8"') }}
+    <div class="field">
+      <label class="check"><input type="checkbox" name="agree" value="1" {% if form.get('agree') %}checked{% endif %} {% if errors.get('agree') %}aria-invalid="true" aria-describedby="e-agree"{% endif %}>
+        <span>我已閱讀並同意 <a href="{{ url_for('doc', slug='terms') }}" target="_blank">服務協議</a> 與 <a href="{{ url_for('doc', slug='privacy') }}" target="_blank">隱私權聲明</a></span></label>
+      {% if errors.get('agree') %}<span class="error" id="e-agree">{{ errors.agree }}</span>{% endif %}
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">註冊</button>
+  </form>
+  <p class="small muted mt-4">已經有帳號？<a href="{{ url_for('login') }}">登入</a></p>
+</div></div>
+{% endblock %}

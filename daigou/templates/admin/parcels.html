@@ -1,0 +1,35 @@
+{% extends "admin/_layout.html" %}
+{% from "_ui.html" import csrf_input, status, tabs, empty %}
+{% block title %}包裹入庫｜管理後台{% endblock %}
+{% block main %}
+<div class="page-head"><h1>包裹入庫</h1></div>
+<div class="card">
+  <h2 class="card-title">登記未預報包裹</h2>
+  <form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="action" value="unclaimed">
+    <label class="sr-only" for="u-code">會員編號</label><input class="input" id="u-code" name="member_code" placeholder="會員編號" required>
+    <label class="sr-only" for="u-car">物流</label><input class="input" id="u-car" name="carrier" placeholder="物流">
+    <label class="sr-only" for="u-tr">單號</label><input class="input" id="u-tr" name="tracking" placeholder="單號">
+    <label class="sr-only" for="u-ct">內容物</label><input class="input" id="u-ct" name="content" placeholder="內容物">
+    <label class="sr-only" for="u-w">重量</label><input class="input w-xs" id="u-w" name="weight" type="number" step="0.01" placeholder="重量 kg" required>
+    <button class="btn btn-primary btn-sm" type="submit">入庫</button>
+  </form>
+</div>
+{{ tabs('admin_parcels', flow, status) }}
+<div class="card">
+{% if rows %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>#</th><th>會員</th><th>物流 / 單號</th><th>內容物</th><th class="num">申報</th><th>狀態</th><th>處理</th></tr></thead>
+  <tbody>{% for p in rows %}
+  <tr><td>{{ p.id }}</td><td>{{ p.name }}<br><span class="mono small">{{ p.member_code }}</span></td>
+    <td>{{ p.carrier }}<br><span class="mono small">{{ p.tracking }}</span></td><td>{{ p.content }}</td>
+    <td class="num">{{ p.value_jpy|money('JPY') }}</td><td>{{ status(p.status) }}</td>
+    <td>{% if p.status == '預報中' %}
+      <form method="post" class="inline-form">{{ csrf_input() }}<input type="hidden" name="id" value="{{ p.id }}"><input type="hidden" name="action" value="receive">
+        <label class="sr-only" for="w{{ p.id }}">重量</label><input class="input w-xs" id="w{{ p.id }}" name="weight" type="number" step="0.01" placeholder="重量 kg" required>
+        <button class="btn btn-primary btn-sm" type="submit">入庫</button></form>
+      {% else %}<span class="small">{{ '%.2f kg'|format(p.weight) if p.weight else '' }}</span>{% endif %}</td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% else %}{{ empty('沒有這個狀態的包裹') }}{% endif %}
+</div>
+{% endblock %}

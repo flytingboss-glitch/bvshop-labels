@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="section"><div class="container center">
+  <h1 class="section-title">{{ '找不到這個頁面' if code == 404 else '沒有權限' }}</h1>
+  <a class="btn btn-primary" href="{{ url_for('home') }}">回首頁</a>
+</div></section>
+{% endblock %}
